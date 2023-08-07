@@ -2,23 +2,23 @@ import numpy as np
 from mip import Model, BINARY, MINIMIZE, xsum
 from itertools import product
 
-def mip_solve(
-        n_tasks, 
-        n_operations, 
-        n_cities, 
-        n_services, 
-        operation, 
-        dist, 
-        time_cost, 
-        op_cost, 
-        productivity, 
-        transportation_cost
-    ):
-    
+def mip_solve(problem):
+    n_tasks = problem['n_tasks']
+    n_operations = problem['n_operations']
+    n_cities = problem['n_cities']
+    n_services = problem['n_services']
+    operation = problem['operation']
+    dist = problem['dist']
+    time_cost = problem['time_cost']
+    op_cost = problem['op_cost']
+    productivity = problem['productivity']
+    transportation_cost = problem['transportation_cost']
+
     gamma_shape = (n_operations, n_tasks, n_cities)
     delta_shape = (n_services, n_cities, n_cities, n_operations - 1, n_tasks)
 
     model = Model(sense=MINIMIZE)
+    model.verbose = 0
     gamma = model.add_var_tensor(shape=gamma_shape, name="gamma", var_type=BINARY)
     delta = model.add_var_tensor(shape=delta_shape, name="delta", var_type=BINARY)
     for i, k in product(range(n_operations), range(n_tasks)):

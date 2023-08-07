@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 def read_fatahi_dataset(path_to_file):
     """
@@ -101,4 +101,3 @@ def _read_sheet(path_to_file, sheet_name):
         'productivity': productivity,
         'transportation_cost': transportation_cost,
     }
-
