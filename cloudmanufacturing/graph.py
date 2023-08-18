@@ -80,7 +80,6 @@ def dglgraph(problem, gamma):
     g.edata['target'] = {
         'os': torch.FloatTensor(target)[:, None],
     }
-
     return g
 
 

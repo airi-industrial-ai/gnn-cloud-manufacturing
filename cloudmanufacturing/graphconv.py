@@ -30,6 +30,17 @@ def edge_den_os(nodes):
 def edge_den_ss(nodes):
     return {'den_ss': torch.sum(torch.exp(nodes.mailbox['e_ss']), dim=1)}
 
+def sample_so(graph, logits):
+    with graph.local_scope():
+        graph.edata['prob'] = {'so': torch.sigmoid(logits)}
+        subg = sample_neighbors(
+            graph, 
+            nodes={'o': graph.nodes('o')}, 
+            fanout={'backward': 0, 'forward': 0, 'os': 0, 'so': 1, 'ss': 0},
+            prob='prob'
+        )
+        return subg.edges(etype='so')
+
 
 class AttnConvLayer(nn.Module):
     def __init__(self, ins_dim, ino_dim, out_dim):
@@ -117,25 +128,12 @@ class DotProductDecoder(nn.Module):
             graph.apply_edges(fn.u_dot_v('z', 'x', 'dot'), etype='so')
             logits = graph.edata['dot'][so_type]
             return logits
-    
-    def sample(self, graph, logits):
-        with graph.local_scope():
-            graph.edata['prob'] = {'so': torch.sigmoid(logits)}
-            subg = sample_neighbors(
-                graph, 
-                nodes={'o': graph.nodes('o')}, 
-                fanout={'backward': 0, 'forward': 0, 'os': 0, 'so': 1, 'ss': 0},
-                prob='prob'
-            )
-            u, v = subg.edges(etype='so')
-            return u, v
-
 
 class GNN(nn.Module):
     def __init__(self, ins_dim, ino_dim, out_dim, n_layers):
         super().__init__()
         convs = [AttnConvLayer(ins_dim, ino_dim, out_dim)]
-        for i in range(n_layers-1):
+        for _ in range(n_layers-1):
             convs.append(AttnConvLayer(out_dim, out_dim, out_dim))
         self.convs = nn.ModuleList(convs)
         self.dec = DotProductDecoder()
@@ -146,12 +144,12 @@ class GNN(nn.Module):
         s_hid, o_hid = self.convs[0](graph, s_feat, o_feat)
         for conv in self.convs[1:]:
             s_hid, o_hid = conv(graph, torch.relu(s_hid), torch.relu(o_hid))
-        prob = self.dec(graph, s_hid, o_hid)
-        return prob
+        logits = self.dec(graph, s_hid, o_hid)
+        return logits
     
     def predict(self, graph, problem):
         logits = self.forward(graph)
-        s, o = self.dec.sample(graph, logits)
+        s, o = sample_so(graph, logits)
         operation_index = graph.ndata['operation_index']['o'][o]
         gamma = np.zeros(
             (problem['n_operations'], problem['n_tasks'], problem['n_cities'])
