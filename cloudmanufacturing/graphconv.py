@@ -3,11 +3,8 @@ from dgl.sampling import sample_neighbors
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-
-
-ss_type = ('s', 'ss', 's')
-os_type = ('o', 'os', 's')
-so_type = ('s', 'so', 'o')
+from cloudmanufacturing.graph import ss_type, os_type, so_type
+import numpy as np
 
 
 def cat_s_ss(edges):
@@ -32,10 +29,6 @@ def edge_den_os(nodes):
 
 def edge_den_ss(nodes):
     return {'den_ss': torch.sum(torch.exp(nodes.mailbox['e_ss']), dim=1)}
-
-
-def exp_u_dot_v(edges):
-    return {'m': torch.exp(torch.sum(edges.src['z'] * edges.dst['x'], dim=1))}
 
 
 class AttnConvLayer(nn.Module):
@@ -121,17 +114,13 @@ class DotProductDecoder(nn.Module):
         with graph.local_scope():
             graph.ndata['z'] = {'s': z}
             graph.ndata['x'] = {'o': x}
-            graph.apply_edges(exp_u_dot_v, etype='so')
-            graph.multi_update_all({
-                'so': (fn.copy_e('m', 'm'), fn.sum('m', 'sum_m'))
-            }, 'sum')
-            graph.apply_edges(fn.e_div_v('m', 'sum_m', 'prob'), etype='so')
-            prob = graph.edata['prob'][so_type]
-            return prob
+            graph.apply_edges(fn.u_dot_v('z', 'x', 'dot'), etype='so')
+            logits = graph.edata['dot'][so_type]
+            return logits
     
-    def sample(self, graph, prob):
+    def sample(self, graph, logits):
         with graph.local_scope():
-            graph.edata['prob'] = {'so': prob}
+            graph.edata['prob'] = {'so': torch.sigmoid(logits)}
             subg = sample_neighbors(
                 graph, 
                 nodes={'o': graph.nodes('o')}, 
@@ -140,3 +129,34 @@ class DotProductDecoder(nn.Module):
             )
             u, v = subg.edges(etype='so')
             return u, v
+
+
+class GNN(nn.Module):
+    def __init__(self, ins_dim, ino_dim, out_dim, n_layers):
+        super().__init__()
+        convs = [AttnConvLayer(ins_dim, ino_dim, out_dim)]
+        for i in range(n_layers-1):
+            convs.append(AttnConvLayer(out_dim, out_dim, out_dim))
+        self.convs = nn.ModuleList(convs)
+        self.dec = DotProductDecoder()
+    
+    def forward(self, graph):
+        s_feat = graph.ndata['feat']['s']
+        o_feat = graph.ndata['feat']['o']
+        s_hid, o_hid = self.convs[0](graph, s_feat, o_feat)
+        for conv in self.convs[1:]:
+            s_hid, o_hid = conv(graph, torch.relu(s_hid), torch.relu(o_hid))
+        prob = self.dec(graph, s_hid, o_hid)
+        return prob
+    
+    def predict(self, graph, problem):
+        logits = self.forward(graph)
+        s, o = self.dec.sample(graph, logits)
+        operation_index = graph.ndata['operation_index']['o'][o]
+        gamma = np.zeros(
+            (problem['n_operations'], problem['n_tasks'], problem['n_cities'])
+        )
+        for i in range(len(operation_index)):
+            operation, task, city = operation_index[i, 1], operation_index[i, 0], s[i]
+            gamma[operation, task, city] = 1
+        return gamma

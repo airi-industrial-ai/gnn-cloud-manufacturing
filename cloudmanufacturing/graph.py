@@ -3,6 +3,10 @@ import dgl
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 
+ss_type = ('s', 'ss', 's')
+os_type = ('o', 'os', 's')
+so_type = ('s', 'so', 'o')
+
 
 def dglgraph(problem, gamma):
     n_tasks = problem['n_tasks']
@@ -45,9 +49,9 @@ def dglgraph(problem, gamma):
         target.append(gamma[o, t, c])
 
     graph_data = {
-        ('s', 'ss', 's'): np.where(dist > 0),
-        ('o', 'os', 's'): np.where(full_op_cost < 999),
-        ('s', 'so', 'o'): np.where(full_op_cost < 999)[::-1],
+        ss_type: np.where(dist > 0),
+        os_type: np.where(full_op_cost < 999),
+        so_type: np.where(full_op_cost < 999)[::-1],
         ('o', 'forward', 'o'): np.where(adj_operation > 0),
         ('o', 'backward', 'o'): np.where(adj_operation > 0)[::-1],
     }
@@ -61,6 +65,9 @@ def dglgraph(problem, gamma):
         'o': torch.FloatTensor(op_feat),
         's': torch.FloatTensor(productivity[:, None])
     }
+    g.ndata['operation_index'] = {
+        'o': torch.LongTensor(operation_index),
+    }
     u_idx, v_idx = g.edges(etype='os')
     serves_feat = np.array([
         full_op_cost[u_idx, v_idx],
@@ -70,8 +77,20 @@ def dglgraph(problem, gamma):
         'os': torch.FloatTensor(serves_feat.T),
         'ss': torch.FloatTensor(dist[g.edges(etype='ss')][:, None]),
     }
-    g.edata['target'] ={
+    g.edata['target'] = {
         'os': torch.FloatTensor(target)[:, None],
     }
 
     return g
+
+
+def graph_gamma(graph, problem):
+    target_mask = graph.edata['target'][os_type][:, 0] == 1
+    u, v = graph.edges(etype=os_type, )
+    u, v = u[target_mask], v[target_mask]
+    u = graph.ndata['operation_index']['o'][u]
+    gamma = np.zeros((problem['n_operations'], problem['n_tasks'], problem['n_cities']))
+    for i in range(len(u)):
+        operation, task, city = u[i, 1], u[i, 0], v[i]
+        gamma[operation, task, city] = 1
+    return gamma
