@@ -60,9 +60,10 @@ class NaiveSolver:
         problem_info = {}
         for num in range(len(self.problems)):
             result = self.solve_problem(num, save_costs=True)
-            problem_dict = {}
-            problem_dict["path"] = result["path"]
-            problem_dict["cost"] = result["cost"]
-            problem_info[f"problem_{num}"] = problem_dict
+
+            problem_info[f"problem_{num}"] = {
+                "path": result["path"],
+                "cost": result["cost"],
+            }
 
         return problem_info
