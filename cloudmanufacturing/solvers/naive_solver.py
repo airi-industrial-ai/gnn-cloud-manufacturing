@@ -1,24 +1,25 @@
 import numpy as np
 
 
-class naive_solver:
+class NaiveSolver:
     def __init__(self, dataset):
         self.problems = dataset
         self.total_cost = 0
+        self.city = None
 
     def solve_suboperaion(self, available_operations, cost_operations, trans_cost):
         """
         Solve problem for one suboperation
         """
         sub_problem_data = []
-        for i, stage in enumerate(available_operations):
-            if i == 0:
-                city = np.argmin(cost_operations[stage])
-                sub_problem_data.append([city, cost_operations[stage][city]])
+        for stage in available_operations:
+            if self.city == None:
+                self.city = np.argmin(cost_operations[stage])
+                sub_problem_data.append([self.city, cost_operations[stage][self.city]])
             else:
-                cost_total = cost_operations[stage] + trans_cost[city]
-                city = np.argmin(cost_total)
-                sub_problem_data.append([city, cost_operations[stage][city]])
+                cost_total = cost_operations[stage] + trans_cost[self.city]
+                self.city = np.argmin(cost_total)
+                sub_problem_data.append([self.city, cost_total[self.city]])
         return np.array(sub_problem_data)[:, 0], np.sum(
             np.array(sub_problem_data)[:, 1]
         )
@@ -51,16 +52,17 @@ class naive_solver:
             problem_path[f"suboperation_{n_sub}"] = path
         if save_costs:
             self.total_cost += problem_cost
+        self.city = None
         return {"path": problem_path, "cost": problem_cost}
 
     def solve_all(self):
         self.total_cost = 0
-        problem_info = {
-            f"problem_{num}": {
-                "path": self.solve_problem(num, save_costs=True)["path"],
-                "cost": self.solve_problem(num, save_costs=True)["cost"],
-            }
-            for num in range(len(self.problems))
-        }
+        problem_info = {}
+        for num in range(len(self.problems)):
+            result = self.solve_problem(num, save_costs=True)
+            problem_dict = {}
+            problem_dict['path'] = result['path']
+            problem_dict['cost'] = result['cost']
+            problem_info[f'problem_{num}'] = problem_dict
 
         return problem_info
