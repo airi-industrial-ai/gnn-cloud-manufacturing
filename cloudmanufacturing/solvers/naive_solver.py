@@ -13,7 +13,7 @@ class NaiveSolver:
         """
         sub_problem_data = []
         for stage in available_operations:
-            if self.city == None:
+            if self.city is None:
                 self.city = np.argmin(cost_operations[stage])
                 sub_problem_data.append([self.city, cost_operations[stage][self.city]])
             else:
@@ -61,8 +61,8 @@ class NaiveSolver:
         for num in range(len(self.problems)):
             result = self.solve_problem(num, save_costs=True)
             problem_dict = {}
-            problem_dict['path'] = result['path']
-            problem_dict['cost'] = result['cost']
-            problem_info[f'problem_{num}'] = problem_dict
+            problem_dict["path"] = result["path"]
+            problem_dict["cost"] = result["cost"]
+            problem_info[f"problem_{num}"] = problem_dict
 
         return problem_info
