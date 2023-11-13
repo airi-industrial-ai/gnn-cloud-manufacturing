@@ -15,5 +15,7 @@ setup(
         'torch',
         'numpy',
         'mip',
+        'scikit-learn',
+        'openpyxl',
     ],
 )
