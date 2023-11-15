@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class naive_solver:
+class NaiveSolver:
     def __init__(self, dataset):
         self.problems = dataset
         self.total_cost = 0
@@ -10,6 +10,11 @@ class naive_solver:
         n_operations = dataset[0]["n_operations"]
         n_cities = dataset[0]["n_cities"]
         self.gamma = np.zeros((n_operations, n_tasks, n_cities))
+
+    def softmax(self, x):
+        reciprocal_x = 1 / x
+        exp_reciprocal_x = np.exp(reciprocal_x - np.max(reciprocal_x))
+        return exp_reciprocal_x / np.sum(exp_reciprocal_x)
 
     def solve_suboperaion(
         self,
