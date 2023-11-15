@@ -12,11 +12,17 @@ class NaiveSolver_plus:
         self.skip_step = skip_step
 
     def softmax(self, x):
+        """
+        Softmax function with reverse values for giving higher probability for smaller value
+        """
         reciprocal_x = 1 / x
         exp_reciprocal_x = np.exp(reciprocal_x - np.max(reciprocal_x))
         return exp_reciprocal_x / np.sum(exp_reciprocal_x)
 
     def look_forward(self, horizon, start_city=None, cost=0):
+        """
+        Make some steps forward and save results
+        """
         visited_cities = []
         for stage in horizon:
             if start_city is None:
@@ -43,6 +49,9 @@ class NaiveSolver_plus:
         return cost, visited_cities
 
     def sample_forward(self, horizon, init_city, num):
+        """
+        Sampling forward walks to collect data for making choice
+        """
         rand_walk = [self.look_forward(horizon, init_city) for _ in range(num)]
         return rand_walk
 
