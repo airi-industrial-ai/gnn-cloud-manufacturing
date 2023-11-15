@@ -4,6 +4,17 @@ import numpy as np
 from mip import BINARY, MINIMIZE, Model, xsum
 
 
+def find_path(gamma):
+    problem_info = []
+    for task in range(gamma.shape[1]):
+        path = np.array([])
+        for sub_operation in range(len(gamma)):
+            city = np.nonzero(gamma[sub_operation][task])[0]
+            path = np.concatenate([path, city])
+        problem_info.append(list(map(int, path)))
+    return problem_info
+
+
 def mip_solve(problem):
     n_tasks = problem["n_tasks"]
     n_operations = problem["n_operations"]
