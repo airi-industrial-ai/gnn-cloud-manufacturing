@@ -9,12 +9,16 @@ class naive_solver:
         n_tasks = dataset[0]["n_tasks"]
         n_operations = dataset[0]["n_operations"]
         n_cities = dataset[0]["n_cities"]
-
         self.gamma = np.zeros((n_operations, n_tasks, n_cities))
 
-
-    def solve_suboperaion(self, available_operations, cost_operations,
-                        trans_cost, operation_number = None, save_to_gamma = False):
+    def solve_suboperaion(
+        self,
+        available_operations,
+        cost_operations,
+        trans_cost,
+        operation_number=None,
+        save_to_gamma=False,
+    ):
         """
         Solve problem for one suboperation
         """
@@ -29,15 +33,14 @@ class naive_solver:
                 city = np.argmin(cost_total)
                 sub_problem_data.append([city, cost_operations[stage][city]])
 
-            if save_to_gamma == True:
+            if save_to_gamma is True:
                 self.gamma[operation_number, stage, city] = 1
 
         return np.array(sub_problem_data)[:, 0], np.sum(
             np.array(sub_problem_data)[:, 1]
         )
 
-
-    def solve_problem(self, num_problem, save_costs=False, save_to_gamma = False):
+    def solve_problem(self, num_problem, save_costs=False, save_to_gamma=True):
         """
         Solve operation
         """
@@ -58,8 +61,11 @@ class naive_solver:
         for n_sub in range(n_tasks):
             available_operations = np.nonzero(operation[:, n_sub])[0]
             path, cost = self.solve_suboperaion(
-                available_operations, cost_operations, trans_cost, operation_number=n_sub,
-                save_to_gamma = save_to_gamma
+                available_operations,
+                cost_operations,
+                trans_cost,
+                operation_number=n_sub,
+                save_to_gamma=save_to_gamma,
             )
 
             problem_cost += cost
@@ -68,13 +74,16 @@ class naive_solver:
             self.total_cost += problem_cost
         return {"path": problem_path, "cost": problem_cost}
 
-
     def solve_all(self):
         self.total_cost = 0
         problem_info = {
             f"problem_{num}": {
-                "path": self.solve_problem(num, save_costs=True, save_to_gamma=True)["path"],
-                "cost": self.solve_problem(num, save_costs=True, save_to_gamma=True)["cost"],
+                "path": self.solve_problem(num, save_costs=True, save_to_gamma=True)[
+                    "path"
+                ],
+                "cost": self.solve_problem(num, save_costs=True, save_to_gamma=True)[
+                    "cost"
+                ],
             }
             for num in range(len(self.problems))
         }
