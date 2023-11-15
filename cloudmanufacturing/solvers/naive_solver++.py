@@ -11,6 +11,11 @@ class NaiveSolver_plus:
         self.trans_cost = None
         self.skip_step = skip_step
 
+    def softmax(self, x):
+        reciprocal_x = 1 / x
+        exp_reciprocal_x = np.exp(reciprocal_x - np.max(reciprocal_x))
+        return exp_reciprocal_x / np.sum(exp_reciprocal_x)
+
     def look_forward(self, horizon, start_city=None, cost=0):
         visited_cities = []
         for stage in horizon:
