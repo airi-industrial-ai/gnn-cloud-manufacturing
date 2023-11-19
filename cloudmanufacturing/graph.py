@@ -9,26 +9,26 @@ so_type = ("s", "so", "o")
 
 
 def dglgraph(problem, gamma):
-    n_tasks = problem["n_tasks"]
     n_operations = problem["n_operations"]
-    operation = problem["operation"]
+    n_suboperations = problem["n_suboperations"]
+    operations = problem["operations"]
     dist = problem["dist"]
     time_cost = problem["time_cost"]
     op_cost = problem["op_cost"]
     productivity = problem["productivity"]
 
     operation_index = []
-    for i in range(n_tasks):
-        for j in range(n_operations):
-            if operation[j, i] == 1:
+    for i in range(n_operations):
+        for j in range(n_suboperations):
+            if operations[j, i] == 1:
                 operation_index.append((i, j))
-    operation_index.append([n_tasks // 2, -1])
-    operation_index.append([n_tasks // 2, n_operations])
+    operation_index.append([n_operations // 2, -1])
+    operation_index.append([n_operations // 2, n_suboperations])
     operation_index = np.array(operation_index)
 
     adj_operation = np.zeros((operation_index.shape[0], operation_index.shape[0]))
-    for i in range(n_tasks):
-        col_i = operation[:, i]
+    for i in range(n_operations):
+        col_i = operations[:, i]
         path = np.where(col_i > 0)[0]
         for j in range(len(path) - 1):
             u = operation_index.tolist().index([i, path[j]])
@@ -37,11 +37,11 @@ def dglgraph(problem, gamma):
         adj_operation[-2, operation_index.tolist().index([i, path[0]])] = 1
         adj_operation[operation_index.tolist().index([i, path[-1]]), -1] = 1
 
-    full_time_cost = np.tile(time_cost, (n_tasks, 1))
-    full_time_cost = full_time_cost[operation.T.reshape(-1).astype(bool)]
+    full_time_cost = np.tile(time_cost, (n_operations, 1))
+    full_time_cost = full_time_cost[operations.T.reshape(-1).astype(bool)]
 
-    full_op_cost = np.tile(op_cost, (n_tasks, 1))
-    full_op_cost = full_op_cost[operation.T.reshape(-1).astype(bool)]
+    full_op_cost = np.tile(op_cost, (n_operations, 1))
+    full_op_cost = full_op_cost[operations.T.reshape(-1).astype(bool)]
 
     target = []
     for full_o, c in zip(*np.where(full_op_cost < 999), strict=True):
@@ -94,7 +94,9 @@ def graph_gamma(graph, problem):
     )
     u, v = u[target_mask], v[target_mask]
     u = graph.ndata["operation_index"]["o"][u]
-    gamma = np.zeros((problem["n_operations"], problem["n_tasks"], problem["n_cities"]))
+    gamma = np.zeros(
+        (problem["n_suboperations"], problem["n_operations"], problem["n_cities"])
+    )
     for i in range(len(u)):
         operation, task, city = u[i, 1], u[i, 0], v[i]
         gamma[operation, task, city] = 1

@@ -89,8 +89,8 @@ class NaiveSolver_plus:
         """
         Solve operation
         """
-        n_tasks = self.problems[num_problem]["n_tasks"]
-        operation = self.problems[num_problem]["operation"]
+        n_operations = self.problems[num_problem]["n_operations"]
+        operations = self.problems[num_problem]["operation"]
         dist = self.problems[num_problem]["dist"]
         time_cost = self.problems[num_problem]["time_cost"]
         op_cost = self.problems[num_problem]["op_cost"]
@@ -103,8 +103,8 @@ class NaiveSolver_plus:
         problem_cost = 0
         problem_path = {}
 
-        for n_sub in range(n_tasks):
-            available_operations = np.nonzero(operation[:, n_sub])[0]
+        for n_sub in range(n_operations):
+            available_operations = np.nonzero(operations[:, n_sub])[0]
             path, cost = self.solve_suboperaion(available_operations)
 
             problem_cost += cost

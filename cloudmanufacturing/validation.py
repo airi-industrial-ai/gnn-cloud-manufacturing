@@ -19,11 +19,11 @@ def objvalue(problem, gamma, delta):
 
 def construct_delta(problem, gamma):
     n_cities = problem["n_cities"]
+    n_suboperations = problem["n_suboperations"]
     n_operations = problem["n_operations"]
-    n_tasks = problem["n_tasks"]
 
-    delta = np.zeros((1, n_cities, n_cities, n_operations - 1, n_tasks))
-    for t in range(n_tasks):
+    delta = np.zeros((1, n_cities, n_cities, n_suboperations - 1, n_operations))
+    for t in range(n_operations):
         o_iter, c_iter = np.where(gamma[:, t] == 1)
         for i in range(len(o_iter) - 1):
             o = o_iter[i]
