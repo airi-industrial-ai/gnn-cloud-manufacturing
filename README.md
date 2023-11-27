@@ -23,9 +23,9 @@ To set up the project locally, follow these steps:
 
 2. To setup only the necessary dependencies, run the following:
 
-```
-poetry install
-```
+   ```
+   poetry install
+   ```
 
 ## Data
 
