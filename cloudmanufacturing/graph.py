@@ -2,10 +2,17 @@ import torch
 import dgl
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
+import torch.nn.functional as F
 
 ss_type = ('s', 'ss', 's')
 os_type = ('o', 'os', 's')
 so_type = ('s', 'so', 'o')
+
+def dglgraph_fixed(problem, gamma, oper_max=20):
+    g = dglgraph(problem, gamma)
+    ncolumns = g.ndata['feat']['o'].shape[1]
+    g.ndata['feat'] = {'o': F.pad(g.ndata['feat']['o'], [0, oper_max - ncolumns])}
+    return g
 
 
 def dglgraph(problem, gamma):
