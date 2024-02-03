@@ -1,9 +1,0 @@
-pandas
-tqdm
-pytest
-dgl
-torch
-numpy
-mip
-scikit-learn
-openpyxl

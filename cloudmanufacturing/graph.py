@@ -3,10 +3,67 @@ import dgl
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 import torch.nn.functional as F
+import openpyxl
+from cloudmanufacturing.mip_solver import mip_solve
+import pickle
+from cloudmanufacturing.data import solve_excel
 
 ss_type = ('s', 'ss', 's')
 os_type = ('o', 'os', 's')
 so_type = ('s', 'so', 'o')
+
+def calculate_optimal(train_pth, logger, dataset, os_type, ss_type):
+
+	filepath = train_pth[:-5] + '_solved.xlsx'
+	solve_pth = train_pth[:-5] + '_solve.pickle'
+	
+	wb = openpyxl.Workbook()
+	wb.save(filepath)
+	DGList =[]
+
+	for problem in dataset:
+		delta, train_gamma, status, value = mip_solve(problem)
+
+		if status.name == "OPTIMAL":
+			
+			example_graph = dglgraph_fixed(problem, train_gamma)
+			example_target = example_graph.edata['target'][os_type]
+			example_graph.edata['feat'][os_type][:, 0] /= 10
+			example_graph.edata['feat'][ss_type][:] /= 100
+			DGList.append(example_graph)
+			with open(solve_pth, 'wb') as f:
+				pickle.dump(DGList, f)
+	
+			logger.info(f"Solved as OPTIMAL and saved in dgl format task with parameters {problem['name']}")
+			sheet_name = problem['name']
+			city_to_op_solution = []
+			otc=[]
+			for o, t, c in zip(*np.where(train_gamma == 1)):
+				city_to_op_solution.append((f'city {c}', f'{t}_{o}'))
+				otc.append([o,t,c])
+
+			shape_g = np.shape(train_gamma)
+			solve_excel(filepath, sheet_name, city_to_op_solution, otc, shape_g)
+			logger.info(f"Saved as excel task with parameters {problem['name']}")
+                  
+		source_workbook = openpyxl.load_workbook(train_pth[:-5] + '_solved.xlsx')
+		source_sheet_names = source_workbook.sheetnames[1:]
+		train_workbook = openpyxl.load_workbook(train_pth)
+		new_workbook = openpyxl.Workbook()
+
+        # Копируем листы из исходного файла в новый файл
+		for sheet_name in source_sheet_names:
+			source_sheet = train_workbook[sheet_name]
+			new_sheet = new_workbook.create_sheet(title=sheet_name)
+				
+			for row in source_sheet.iter_rows(values_only=True):
+				new_sheet.append(row)
+
+        # Сохраняем новый Excel-файл
+		new_workbook.save(train_pth[:-5] + '_OPTIMAL.xlsx')
+		with open(train_pth[:-5] + '_sheet_names.pickle', 'wb') as s:
+			pickle.dump(source_sheet_names, s)
+            
 
 def dglgraph_fixed(problem, gamma, oper_max=20):
     g = dglgraph(problem, gamma)

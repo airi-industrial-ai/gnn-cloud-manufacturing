@@ -1,7 +1,0 @@
-README.md
-setup.py
-cloudmanufacturing.egg-info/PKG-INFO
-cloudmanufacturing.egg-info/SOURCES.txt
-cloudmanufacturing.egg-info/dependency_links.txt
-cloudmanufacturing.egg-info/requires.txt
-cloudmanufacturing.egg-info/top_level.txt
