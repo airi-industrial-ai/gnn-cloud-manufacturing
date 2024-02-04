@@ -46,17 +46,16 @@ def create_distance_matrix(n_cities):
     return distances
 
 def create_excel_table(n_operations, n_suboperations, n_cities, filepath,  n_problem=1):
+
     # Создаем новый файл Excel
     wb = openpyxl.load_workbook(filepath)
 
     # Выбираем активный лист
     sheet_name = f"{n_operations},{n_suboperations},{n_cities}-{n_problem}"
     sheet = wb.create_sheet(title=sheet_name)
-    
     sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=16)
-
     sheet.cell(row=1, column=1).value = f"problem No.{n_problem} with {n_operations} Operation, {n_suboperations} Sub-operations, {n_cities} Cities"
-    
+
     start_oper = 5
     
     # Создаем симметричную матрицу расстояний
@@ -67,11 +66,13 @@ def create_excel_table(n_operations, n_suboperations, n_cities, filepath,  n_pro
         sheet.cell(row=start_oper, column=i+1).value = f"Operation{i}"
     for i in range(start_oper, n_suboperations + start_oper):
         sheet.cell(row=i+1, column=1).value = f"Sub-operation{i}"
+
     
     n = np.random.uniform(0.2, 0.8)   
-    for i in range(start_oper, n_suboperations + start_oper):
-        for j in range(2, n_operations + 2):
-                sheet.cell(row=i+1, column=j).value = random.choices([0,1], weights=[1-n, n])[0]
+    for j in range(2, n_operations + 2):
+        sub_vector = generate_vector(n_suboperations)
+        for i in range(start_oper, n_suboperations + start_oper):
+                sheet.cell(row=i+1, column=j).value = sub_vector[i - start_oper]
 
     
     sheet.merge_cells(start_row=start_oper-1, start_column=1, end_row=start_oper-1, end_column=n_operations+1)
@@ -142,6 +143,19 @@ def create_excel_table(n_operations, n_suboperations, n_cities, filepath,  n_pro
     # Сохраняем файл
     wb.save(filepath)
     return sheet_name
+
+def generate_vector(n):
+
+    # Генерируем случайное количество единиц в векторе
+    num_ones = random.randint(1, n-1)
+    
+    # Создаем вектор с num_ones единицами и (n - num_ones) нулями
+    vector = [1] * num_ones + [0] * (n - num_ones)
+    
+    # Перемешиваем элементы вектора
+    random.shuffle(vector)
+    
+    return vector
 
 def solve_excel(fpath, sheet_name, city_to_op_solution, otc, shape_g):
     
