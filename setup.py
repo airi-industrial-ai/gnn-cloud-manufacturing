@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='cloudmanufacturing',
-    packages=find_packages(),
+    packages=['cloudmanufacturing'],
     version='0.0.1',
     description='GNN for cloud manufacturing',
     url='https://github.com/airi-industrial-ai/gnn-claud-manufacturing',
