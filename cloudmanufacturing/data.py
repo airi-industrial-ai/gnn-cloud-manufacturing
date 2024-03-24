@@ -35,7 +35,7 @@ def read_fatahi_dataset(path_to_file):
 
 
 def _read_sheet(path_to_file, sheet_name):
-    n_services = 1
+    n_services = 10
     n_operations, n_suboperations, n_cities, _ = list(
         map(int, "-".join(sheet_name.split(",")).split("-"))
     )
@@ -93,7 +93,9 @@ def _read_sheet(path_to_file, sheet_name):
         - 1 * 4,
         nrows=1,
     )
-    transportation_cost[:] = [0.3]
+    transportation_cost = np.random.rand(n_services,
+                                         n_cities,
+                                         n_cities)
     return {
         "name": sheet_name,
         "n_operations": n_operations,
