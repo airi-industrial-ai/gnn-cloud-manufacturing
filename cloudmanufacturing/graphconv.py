@@ -47,7 +47,8 @@ def sample_so(graph, logits):
 class AttnConvLayer(nn.Module):
     def __init__(self, ins_dim, ino_dim, out_dim):
         super().__init__()
-        self.W_s = nn.Linear(ins_dim, out_dim)
+        # Productivity is always has the same shape
+        self.W_s = nn.Linear(1, out_dim)
         self.W_os = nn.Linear(ino_dim + 2, out_dim)
         self.W_ss = nn.Linear(ins_dim + 1, out_dim)
         self.attn = nn.Linear(out_dim * 2, 1)
