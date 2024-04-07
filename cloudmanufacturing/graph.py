@@ -8,7 +8,7 @@ os_type = ("o", "os", "s")
 so_type = ("s", "so", "o")
 
 
-def dglgraph(problem, gamma):
+def dglgraph(problem, gamma, delta):
     n_operations = problem["n_operations"]
     n_suboperations = problem["n_suboperations"]
     operations = problem["operations"]
@@ -16,6 +16,7 @@ def dglgraph(problem, gamma):
     time_cost = problem["time_cost"]
     op_cost = problem["op_cost"]
     productivity = problem["productivity"]
+    transportation_cost = problem["transportation_cost"]
 
     operation_index = []
     for i in range(n_operations):
@@ -44,9 +45,20 @@ def dglgraph(problem, gamma):
     full_op_cost = full_op_cost[operations.T.reshape(-1).astype(bool)]
 
     target = []
-    for full_o, c in zip(*np.where(full_op_cost < 999), strict=True):
+    # for full_o, c in zip(*np.where(full_op_cost < 999), strict=True):
+    #     t, o = operation_index[full_o]
+    #     target.append(gamma[o, t, c])
+
+    for i, (full_o, c) in enumerate(zip(*np.where(full_op_cost < 999))):
         t, o = operation_index[full_o]
-        target.append(gamma[o, t, c])
+        seq = np.where(operations[o:, t] == 1)[0]
+        if i != 0 and gamma[o, t, c] and len(seq) > 1:
+            fc = np.nonzero(gamma[o, t, :])[0][0]
+            sc = np.nonzero(gamma[o+seq[1], t, :])[0][0]
+            company = np.nonzero(delta[:, fc, sc, o+seq[1], t])[0][0]
+            target.append(gamma[o, t, c]+company)
+        else:
+            target.append(gamma[o, t, c])
 
     graph_data = {
         ss_type: np.where(dist > 0),
@@ -77,12 +89,15 @@ def dglgraph(problem, gamma):
             full_time_cost[u_idx, v_idx],
         ]
     )
+    transp = np.array(transportation_cost[:,
+                             g.edges(etype="ss")[0],
+                             g.edges(etype="ss")[1]] * dist[g.edges(etype="ss")])
     g.edata["feat"] = {
         "os": torch.FloatTensor(serves_feat.T),
-        "ss": torch.FloatTensor(dist[g.edges(etype="ss")][:, None]),
+        "ss": torch.FloatTensor(transp.T),
     }
     g.edata["target"] = {
-        "os": torch.FloatTensor(target)[:, None],
+        "os": torch.FloatTensor(target),
     }
     return g
 
