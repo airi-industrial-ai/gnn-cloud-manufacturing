@@ -61,7 +61,7 @@ def mip_solve(problem):
     )
 
     total_logistic_cost = np.sum(
-        (transportation_cost[:, None, None] * dist[None, ...])[..., None, None] * delta
+        (transportation_cost * dist[None, ...])[..., None, None] * delta
     )
 
     model.objective = total_op_cost + total_logistic_cost
