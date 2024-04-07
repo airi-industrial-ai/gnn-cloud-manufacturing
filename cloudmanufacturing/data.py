@@ -93,9 +93,9 @@ def _read_sheet(path_to_file, sheet_name):
         - 1 * 4,
         nrows=1,
     )
-    transportation_cost = np.random.rand(n_services,
-                                         n_cities,
-                                         n_cities)
+    transportation_cost = np.random.uniform(0.1, 0.3, (n_services,
+                                                       n_cities,
+                                                       n_cities))
     return {
         "name": sheet_name,
         "n_operations": n_operations,
