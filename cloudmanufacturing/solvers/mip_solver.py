@@ -28,7 +28,7 @@ def mip_solve(problem):
     transportation_cost = problem["transportation_cost"]
 
     gamma_shape = (n_suboperations, n_operations, n_cities)
-    delta_shape = (n_services, n_cities, n_cities, n_suboperations - 1, n_operations)
+    delta_shape = (n_services, n_cities, n_cities, n_suboperations, n_operations)
 
     model = Model(sense=MINIMIZE)
     model.verbose = 0
@@ -42,7 +42,7 @@ def mip_solve(problem):
         model += xsum(gamma[i, k]) == operations[i, k]
 
     for i, k, m, m_ in product(
-        range(n_suboperations - 1),
+        range(n_suboperations),
         range(n_operations),
         range(n_cities),
         range(n_cities),
@@ -52,8 +52,9 @@ def mip_solve(problem):
         seq = np.where(operations[i:, k] == 1)[0]
         if operations[i, k] and len(seq) > 1:
             model += gamma[i, k, m] + gamma[i + seq[1], k, m_] - 1 <= xsum(
-                delta[:, m, m_, i, k]
+                delta[:, m, m_, i + seq[1], k]
             )
+    model += np.sum(delta) <= np.sum(gamma)
 
     total_op_cost = np.sum(
         (time_cost * op_cost / productivity[None, :])[:, None, :] * gamma
