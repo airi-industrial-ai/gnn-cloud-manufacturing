@@ -45,20 +45,36 @@ def dglgraph(problem, gamma, delta):
     full_op_cost = full_op_cost[operations.T.reshape(-1).astype(bool)]
 
     target = []
-    # for full_o, c in zip(*np.where(full_op_cost < 999), strict=True):
-    #     t, o = operation_index[full_o]
-    #     target.append(gamma[o, t, c])
 
+    # take all operations and cities
+    # for i, (full_o, c) in enumerate(zip(*np.where(full_op_cost < 999))):
+    #     # split operations by suboperation and operation
+    #     t, o = operation_index[full_o]
+    #     # Take next suboperations which are not 0
+    #     seq = np.where(operations[o:, t] == 1)[0]
+    #     if len(seq) > 1:
+    #         fc = np.nonzero(gamma[o, t, :])[0][0]
+    #         sc = np.nonzero(gamma[o+seq[1], t, :])[0][0]
+    #         if gamma[o, t, c] and any(delta[:, fc, sc, o+seq[1], t]):
+    #             # find a company number
+    #             company = np.nonzero(delta[:, fc, sc, o+seq[1], t])[0][0]
+    #             target.append(gamma[o, t, c] + company)
+    #     else:
+    #         target.append(gamma[o, t, c])
+    
     for i, (full_o, c) in enumerate(zip(*np.where(full_op_cost < 999))):
+        # split operations by suboperation and operation
         t, o = operation_index[full_o]
         seq = np.where(operations[o:, t] == 1)[0]
-        if i != 0 and gamma[o, t, c] and len(seq) > 1:
-            fc = np.nonzero(gamma[o, t, :])[0][0]
-            sc = np.nonzero(gamma[o+seq[1], t, :])[0][0]
-            company = np.nonzero(delta[:, fc, sc, o+seq[1], t])[0][0]
-            target.append(gamma[o, t, c]+company)
-        else:
-            target.append(gamma[o, t, c])
+        if len(seq) > 1:
+            next_city = np.nonzero(gamma[o+seq[1], t, :])[0][0]
+            next_oper = operation_index[full_o+1][1]
+            if any(delta[:, c, next_city, next_oper, t]):
+                company = np.nonzero(delta[:, c, next_city, next_oper, t])[0][0] + 1
+            else: company = 0
+        target.append(gamma[o, t, c] + company)
+    target = torch.FloatTensor(target)
+    target[target > 1] = target[target > 1] - 1
 
     graph_data = {
         ss_type: np.where(dist > 0),
@@ -103,15 +119,22 @@ def dglgraph(problem, gamma, delta):
 
 
 def graph_gamma(graph, problem):
-    target_mask = graph.edata["target"][os_type][:, 0] == 1
+    # Take non-zero edges
+    target_mask = graph.edata["target"][os_type] != 0
+    
+    # Return source and destination nodes
     u, v = graph.edges(
         etype=os_type,
     )
+    # Apply mask
     u, v = u[target_mask], v[target_mask]
+    # take operations
     u = graph.ndata["operation_index"]["o"][u]
+    # Construct a new gamma matrix
     gamma = np.zeros(
         (problem["n_suboperations"], problem["n_operations"], problem["n_cities"])
     )
+    # Fill the new gamma matrix
     for i in range(len(u)):
         operation, task, city = u[i, 1], u[i, 0], v[i]
         gamma[operation, task, city] = 1

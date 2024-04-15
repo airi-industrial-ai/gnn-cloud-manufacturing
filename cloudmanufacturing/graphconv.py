@@ -34,7 +34,7 @@ def edge_den_ss(nodes):
 
 def sample_so(graph, logits):
     with graph.local_scope():
-        graph.edata["prob"] = {"so": torch.sigmoid(logits)}
+        graph.edata["prob"] = {"so": F.softmax(logits, dim=-1)}
         subg = sample_neighbors(
             graph,
             nodes={"o": graph.nodes("o")},
@@ -48,9 +48,9 @@ class AttnConvLayer(nn.Module):
     def __init__(self, ins_dim, ino_dim, out_dim):
         super().__init__()
         # Productivity is always has the same shape
-        self.W_s = nn.Linear(1, out_dim)
+        self.W_s = nn.Linear(ins_dim, out_dim)
         self.W_os = nn.Linear(ino_dim + 2, out_dim)
-        self.W_ss = nn.Linear(ins_dim + 1, out_dim)
+        self.W_ss = nn.Linear(ins_dim + 10, out_dim)
         self.attn = nn.Linear(out_dim * 2, 1)
         self.W_in = nn.Linear(ino_dim, out_dim)
         self.W_self = nn.Linear(ino_dim, out_dim)
@@ -61,6 +61,7 @@ class AttnConvLayer(nn.Module):
         with graph.local_scope():
             z = self._conv_z(graph, s_feat, o_feat)
             x = self._conv_x(graph, o_feat)
+            # print(z.shape,x.shape)
         return z, x
 
     def _conv_z(self, graph, s_feat, o_feat):
@@ -126,6 +127,7 @@ class AttnConvLayer(nn.Module):
         graph.ndata["h_in"] = {"o": self.W_in(o_feat)}
         graph.ndata["h_self"] = {"o": self.W_self(o_feat)}
         graph.ndata["h_out"] = {"o": self.W_out(o_feat)}
+        # print(f'o_feat - {o_feat.shape}')
 
         graph.multi_update_all(
             {
@@ -142,6 +144,7 @@ class AttnConvLayer(nn.Module):
             ],
             dim=1,
         )
+        # print(f'x - {x.shape}')
         x = self.W_o(torch.relu(x))
         return x
 
@@ -151,12 +154,13 @@ class DotProductDecoder(nn.Module):
         super().__init__()
 
     def forward(self, graph, z, x):
-        with graph.local_scope():
-            graph.ndata["z"] = {"s": z}
-            graph.ndata["x"] = {"o": x}
-            graph.apply_edges(fn.u_dot_v("z", "x", "dot"), etype="so")
-            logits = graph.edata["dot"][so_type]
-            return logits
+        # with graph.local_scope():
+        graph.ndata["z"] = {"s": z}
+        graph.ndata["x"] = {"o": x}
+        ### CHANGED!!!!!!! ################
+        graph.apply_edges(fn.u_mul_v("z", "x", "dot"), etype="so")
+        logits = graph.edata["dot"][so_type]
+        return logits
 
 
 class GNN(nn.Module):
@@ -182,9 +186,14 @@ class GNN(nn.Module):
         s, o = sample_so(graph, logits)
         operation_index = graph.ndata["operation_index"]["o"][o]
         gamma = np.zeros(
-            (problem["n_operations"], problem["n_tasks"], problem["n_cities"])
+            (problem["n_suboperations"], problem["n_operations"], problem["n_cities"])
         )
         for i in range(len(operation_index)):
             operation, task, city = operation_index[i, 1], operation_index[i, 0], s[i]
             gamma[operation, task, city] = 1
         return gamma
+    
+    def predict_new(self, graph, problem):
+        logits = self.forward(graph)
+        logits = F.softmax(logits, dim=-1)
+        
