@@ -1,6 +1,12 @@
 import numpy as np
 
 def objvalue(problem, gamma, delta):
+    
+    assert np.all(np.sum(gamma, axis=2) <= 1), \
+        "You cannot perform one operation in two cities at once. Gamma needs to be fixed."
+    assert np.array_equal(np.sum(gamma, axis=2), problem['operation']), \
+        "The solution in Gamma does not match the stated problem"
+    
     time_cost = problem['time_cost'] 
     op_cost = problem['op_cost'] 
     productivity = problem['productivity'] 
