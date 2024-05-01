@@ -9,10 +9,10 @@ def objvalue(problem, gamma, delta):
     dist = problem["dist"]
 
     total_op_cost = np.sum(
-        (time_cost * op_cost / productivity[None, :])[:, None, :] * gamma
+        (time_cost * op_cost / productivity)[:, None, :] * gamma
     )
     total_logistic_cost = np.sum(
-        (transportation_cost[:, None, None] * dist[None, ...])[..., None, None] * delta
+        (transportation_cost * dist[None, ...])[..., None, None] * delta
     )
     return total_op_cost + total_logistic_cost
 

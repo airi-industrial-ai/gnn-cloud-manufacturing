@@ -106,6 +106,6 @@ def _read_sheet(path_to_file, sheet_name):
         "dist": dist,
         "time_cost": time_cost,
         "op_cost": op_cost,
-        "productivity": productivity,
+        "productivity": productivity.reshape(-1,1),
         "transportation_cost": transportation_cost,
     }
