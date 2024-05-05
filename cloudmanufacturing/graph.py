@@ -7,6 +7,27 @@ ss_type = ('s', 'ss', 's')
 os_type = ('o', 'os', 's')
 so_type = ('s', 'so', 'o')
 
+def find_pairs(gamma):
+    pairs_new = []
+    indices = np.where(gamma.swapaxes(0, 1) == 1)
+    for (t1, o1, c1), (t2, o2, c2) in zip(zip(*indices), 
+                                        zip(*[index[1:] for index in indices])):
+        if t1 == t2:
+            pairs_new.append([c1, c2])
+    return np.unique(np.stack(pairs_new, axis=0),axis=0)
+
+def find_mask(pairs, dist):
+    mask = (
+        np.stack(np.where(dist>0)).T == np.array(pairs)[:,None]
+    ).all(2).any(0)
+    return np.append(mask,[False]*len(dist))
+
+def create_dtarget(delta, dist, n_services):
+    delta_target = np.zeros((dist.shape[0]**2, n_services))
+    for i, (c1, c2) in enumerate(zip(*np.where(dist>0))):
+        if len(np.nonzero(delta[:,c1,c2,:,:])[0]) > 0:
+            delta_target[i, np.nonzero(delta[:,c1,c2,:,:])[0][0]] = 1
+    return delta_target
 
 def dglgraph(problem, gamma, delta):
     n_operations = problem['n_operations']
@@ -17,6 +38,7 @@ def dglgraph(problem, gamma, delta):
     op_cost = problem['op_cost']
     productivity = problem['productivity']
     transportation_cost = problem['transportation_cost']
+    n_services = problem['n_services']
 
     operation_index = []
     for i in range(n_operations):
@@ -45,22 +67,13 @@ def dglgraph(problem, gamma, delta):
     full_op_cost = full_op_cost[operations.T.reshape(-1).astype(bool)]
 
     target = []
-    delta_target = []
     for full_o, c in zip(*np.where(full_op_cost < 999)):
         t, o = operation_index[full_o]
-        seq = np.where(operations[o:, t] == 1)[0]
-        if len(seq) > 1:
-            next_city = np.nonzero(gamma[o+seq[1], t, :])[0][0]
-            next_oper = operation_index[full_o+1][1]
-            delta_target.append(delta[:, c, next_city, next_oper, t].tolist())
-        else:
-            delta_target.append([0 for i in range(10)])
         target.append(gamma[o, t, c])
 
-    delta_target = np.array(delta_target)
-    zero_column = np.zeros((delta_target.shape[0], 1))
-    delta_target = np.hstack((delta_target, zero_column))
-    delta_target[np.where(delta_target.sum(axis=1) == 0),-1] = 1
+    pairs = find_pairs(gamma)
+    mask = find_mask(pairs, dist)
+    delta_target = create_dtarget(delta, dist, n_services)
 
     graph_data = {
         ss_type: np.where(dist > 0),
@@ -100,10 +113,9 @@ def dglgraph(problem, gamma, delta):
         'os': torch.FloatTensor(target)[:, None],
     }
     g.edata['delta_target'] = {
-        'os': torch.FloatTensor(delta_target),
+        'ss': torch.FloatTensor(delta_target),
     }
-    return g
-
+    return g, mask
 
 def graph_gamma(graph, problem):
     target_mask = graph.edata['target'][os_type][:, 0] == 1
