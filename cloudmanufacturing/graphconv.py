@@ -30,7 +30,7 @@ def edge_den_os(nodes):
 def edge_den_ss(nodes):
     return {'den_ss': torch.sum(torch.exp(nodes.mailbox['e_ss']), dim=1)}
 
-def sample_so(graph, logits, delta_logits):
+def sample_so(graph, logits):
     with graph.local_scope():
         graph.edata['prob'] = {'so': torch.sigmoid(logits)}
         subg = sample_neighbors(
@@ -65,7 +65,7 @@ class AttnConvLayer(nn.Module):
         return z, x, delta_logits
 
     def _conv_delta(self, graph):
-        graph.edata['delta'] = {'os': self.delta(graph.edata['h_os'][os_type])}
+        graph.edata['delta'] = {'os': self.delta(torch.relu(graph.edata['h_os'][os_type]))}
         return graph.edata['delta'][os_type]
 
     def _conv_z(self, graph, s_feat, o_feat):
@@ -168,13 +168,8 @@ class GNN(nn.Module):
         return logits, delta_logits
 
     def predict(self, graph, problem):
-        n_cities = problem["n_cities"]
-        n_services = problem['n_services']
-        n_suboperations = problem["n_suboperations"]
-        n_operations = problem["n_operations"]
-
         logits, delta_logits = self.forward(graph)
-        s, o = sample_so(graph, logits, delta_logits)
+        s, o = sample_so(graph, logits)
         operation_index = graph.ndata['operation_index']['o'][o]
         gamma = np.zeros(
             (problem['n_suboperations'], problem['n_operations'], problem['n_cities'])
@@ -182,13 +177,4 @@ class GNN(nn.Module):
         for i in range(len(operation_index)):
             operation, task, city = operation_index[i, 1], operation_index[i, 0], s[i]
             gamma[operation, task, city] = 1
-
-        
-        delta = np.zeros((n_services+1, n_cities, n_cities, n_suboperations, n_operations))
-        for t in range(n_operations):
-            o_iter, c_iter = np.where(gamma[:, t] == 1)
-            for i in range(len(o_iter) - 1):
-                o = o_iter[i]
-                c_u, c_v = c_iter[i], c_iter[i + 1]
-                delta[0, c_u, c_v, o_iter[i+1], t] = np.argmax(F.softmax(delta_logits))
-        return gamma, delta[:-1,]
+        return gamma

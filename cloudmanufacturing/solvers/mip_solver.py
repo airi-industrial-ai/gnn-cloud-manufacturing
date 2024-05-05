@@ -51,13 +51,14 @@ def mip_solve(problem):
         # if any logistic service is required between two service points to fulfill two following sub-operations.
         seq = np.where(operations[i:, k] == 1)[0]
         if operations[i, k] and len(seq) > 1:
-            model += gamma[i, k, m] + gamma[i + seq[1], k, m_] - 1 <= xsum(
-                delta[:, m, m_, i + seq[1], k]
-            )
+            if m != m_:
+                model += gamma[i, k, m] + gamma[i + seq[1], k, m_] - 1 <= xsum(
+                    delta[:, m, m_, i + seq[1], k]
+                )
     model += np.sum(delta) <= np.sum(gamma)
 
     total_op_cost = np.sum(
-        (time_cost * op_cost / productivity[None, :])[:, None, :] * gamma
+        (time_cost * op_cost / productivity)[:, None, :] * gamma
     )
 
     total_logistic_cost = np.sum(

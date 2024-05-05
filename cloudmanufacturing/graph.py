@@ -48,7 +48,6 @@ def dglgraph(problem, gamma, delta):
     delta_target = []
     for full_o, c in zip(*np.where(full_op_cost < 999)):
         t, o = operation_index[full_o]
-        # Take new suboperations
         seq = np.where(operations[o:, t] == 1)[0]
         if len(seq) > 1:
             next_city = np.nonzero(gamma[o+seq[1], t, :])[0][0]
