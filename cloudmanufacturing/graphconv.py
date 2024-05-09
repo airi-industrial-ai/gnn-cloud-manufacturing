@@ -188,10 +188,12 @@ class GNN(nn.Module):
 
         for i in range(len(operation_index)-1):
             if operation_index[i][0] == operation_index[i+1][0]:
-                c1,c2 = s[i],s[i+1]
+                c1, c2 = s[i],s[i+1]
+
                 idx = np.nonzero((
                     np.stack(graph.edges(etype='ss')).T == np.array([[c1,c2]])[:,None]
                 ).all(2).any(0))[0][0]
+
                 serv = np.argmax(F.softmax(delta_logits[idx]))
                 delta[serv,c1,c2,operation_index[i+1][1],operation_index[i][0]] = 1
         return gamma, delta

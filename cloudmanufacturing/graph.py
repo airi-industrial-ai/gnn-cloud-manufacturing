@@ -14,7 +14,7 @@ def find_pairs(gamma):
                                         zip(*[index[1:] for index in indices])):
         if t1 == t2:
             pairs_new.append([c1, c2])
-    return np.unique(np.stack(pairs_new, axis=0),axis=0)
+    return np.unique(np.stack(pairs_new, axis=0), axis=0)
 
 def find_mask(pairs, dist):
     mask = (
