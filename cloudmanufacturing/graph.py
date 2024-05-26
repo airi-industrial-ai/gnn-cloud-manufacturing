@@ -90,7 +90,7 @@ def dglgraph(problem, gamma, delta):
     ).toarray()
     g.ndata['feat'] = {
         'o': torch.FloatTensor(op_feat),
-        's': torch.FloatTensor(productivity)
+        's': torch.FloatTensor(productivity.T)
     }
     g.ndata['operation_index'] = {
         'o': torch.LongTensor(operation_index),
@@ -115,7 +115,10 @@ def dglgraph(problem, gamma, delta):
     g.edata['delta_target'] = {
         'ss': torch.FloatTensor(delta_target),
     }
-    return g, mask
+    g.edata['mask'] = {
+        'ss': torch.LongTensor(mask),
+    }
+    return g
 
 def graph_gamma(graph, problem):
     target_mask = graph.edata['target'][os_type][:, 0] == 1

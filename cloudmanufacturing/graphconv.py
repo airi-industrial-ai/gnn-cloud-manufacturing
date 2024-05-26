@@ -6,6 +6,7 @@ from torch.nn import functional as F
 from cloudmanufacturing.graph import ss_type, os_type, so_type
 import numpy as np
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def cat_s_ss(edges):
     return {'s_ss': torch.cat([edges.src['s_feat'], edges.data['feat']], dim=1)}
@@ -140,26 +141,26 @@ class DotProductDecoder(nn.Module):
             return logits
 
 class GNN(nn.Module):
-    def __init__(self, graph, out_dim, n_layers):
+    def __init__(self,s_shape, o_shape, os_shape,
+                 ss_shape, out_dim, n_layers):
         super().__init__()
-        s_shape = graph.ndata['feat']['s'].shape[1]
-        o_shape = graph.ndata['feat']['o'].shape[1]
-        os_shape = graph.ndata['feat']['o'].shape[1] + graph.edata['feat'][os_type].shape[1]
-        ss_shape = graph.ndata['feat']['s'].shape[1] + graph.edata['feat'][ss_type].shape[1]
+
+        os_shape = o_shape + os_shape
+        ss_shape = s_shape + ss_shape
 
         convs = [AttnConvLayer(s_shape, o_shape,
                                os_shape, ss_shape, out_dim)]
         for _ in range(n_layers-1):
-            os_shape = out_dim + graph.edata['feat'][os_type].shape[1]
-            ss_shape = out_dim + graph.edata['feat'][ss_type].shape[1]
+            os_shape = out_dim + os_shape
+            ss_shape = out_dim + ss_shape
             convs.append(AttnConvLayer(out_dim, out_dim,
                                        os_shape, ss_shape, out_dim))
         self.convs = nn.ModuleList(convs)
         self.dec = DotProductDecoder()
 
     def forward(self, graph):
-        s_feat = graph.ndata['feat']['s']
-        o_feat = graph.ndata['feat']['o']
+        s_feat = graph.ndata['feat']['s'].to(device)
+        o_feat = graph.ndata['feat']['o'].to(device)
         s_hid, o_hid, delta_logits = self.convs[0](graph, s_feat, o_feat)
         for conv in self.convs[1:]:
             s_hid, o_hid, delta_logits = conv(graph, torch.relu(s_hid), torch.relu(o_hid))
@@ -179,8 +180,8 @@ class GNN(nn.Module):
 
         ################################################################################
         delta = np.zeros(
-            (problem['n_services'],problem['n_cities'],problem['n_cities'],
-             problem['n_suboperations'],problem['n_operations'])
+            (problem['n_services'], problem['n_cities'], problem['n_cities'],
+             problem['n_suboperations'], problem['n_operations'])
         )
         city_pairs = []
         for i in range(len(s)-1):
@@ -193,7 +194,6 @@ class GNN(nn.Module):
                 idx = np.nonzero((
                     np.stack(graph.edges(etype='ss')).T == np.array([[c1,c2]])[:,None]
                 ).all(2).any(0))[0][0]
-
-                serv = np.argmax(F.softmax(delta_logits[idx]))
+                serv = np.argmax(F.softmax(delta_logits[idx], dim=0).detach().numpy())
                 delta[serv,c1,c2,operation_index[i+1][1],operation_index[i][0]] = 1
         return gamma, delta
