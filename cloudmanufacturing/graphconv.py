@@ -183,17 +183,9 @@ class GNN(nn.Module):
             (problem['n_services'], problem['n_cities'], problem['n_cities'],
              problem['n_suboperations'], problem['n_operations'])
         )
-        city_pairs = []
-        for i in range(len(s)-1):
-            city_pairs.append([s[i],s[i+1]])
-
         for i in range(len(operation_index)-1):
             if operation_index[i][0] == operation_index[i+1][0]:
-                c1, c2 = s[i],s[i+1]
-
-                idx = np.nonzero((
-                    np.stack(graph.edges(etype='ss')).T == np.array([[c1,c2]])[:,None]
-                ).all(2).any(0))[0][0]
-                serv = np.argmax(F.softmax(delta_logits[idx], dim=0).detach().numpy())
-                delta[serv,c1,c2,operation_index[i+1][1],operation_index[i][0]] = 1
+                edge_idx = graph.edge_ids(s[i],s[i+1],etype=ss_type)
+                serv = torch.argmax(F.softmax(delta_logits[edge_idx], dim=0))
+                delta[serv, s[i], s[i+1], operation_index[i+1][1], operation_index[i][0]] = 1
         return gamma, delta
