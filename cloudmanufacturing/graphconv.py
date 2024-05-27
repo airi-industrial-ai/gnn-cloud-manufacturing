@@ -11,22 +11,17 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def cat_s_ss(edges):
     return {'s_ss': torch.cat([edges.src['s_feat'], edges.data['feat']], dim=1)}
 
-
 def cat_o_os(edges):
     return {'o_os': torch.cat([edges.src['o_feat'], edges.data['feat']], dim=1)}
-
 
 def cat_h_os_s(edges):
     return {'h_os_s': torch.cat([edges.data['h_os'], edges.dst['h_s']], dim=1)}
 
-
 def cat_h_ss_s(edges):
     return {'h_ss_s': torch.cat([edges.data['h_ss'], edges.dst['h_s']], dim=1)}
 
-
 def edge_den_os(nodes):
     return {'den_os': torch.sum(torch.exp(nodes.mailbox['e_os']), dim=1)}
-
 
 def edge_den_ss(nodes):
     return {'den_ss': torch.sum(torch.exp(nodes.mailbox['e_ss']), dim=1)}
@@ -178,7 +173,6 @@ class GNN(nn.Module):
             operation, task, city = operation_index[i, 1], operation_index[i, 0], s[i]
             gamma[operation, task, city] = 1
 
-        ################################################################################
         delta = np.zeros(
             (problem['n_services'], problem['n_cities'], problem['n_cities'],
              problem['n_suboperations'], problem['n_operations'])

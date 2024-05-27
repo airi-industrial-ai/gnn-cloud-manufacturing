@@ -2,8 +2,23 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
+def generate_tariff_matrix(num_companies, distance_matrix, productivity,
+                           cost_operations, variability=0.1):
+    num_cities = distance_matrix.shape[0]
+    tariff_matrix = np.zeros((num_companies, num_cities, num_cities))
+
+    # if it's unprofitale to produce something in the city than it's more expensive logistics
+    baseline = np.mean(cost_operations, axis=0).reshape(-1,1)
+    # higher productivity makes price lower
+    operational_tariffs = (distance_matrix+baseline*0.1) * (1 - productivity.reshape(-1, 1))
+    random_factors = 1 + np.random.randn(num_companies, num_cities, num_cities) * variability
+    tariff_matrix = operational_tariffs * random_factors[:, :, :]
+    for company in range(num_companies):
+        np.fill_diagonal(tariff_matrix[company], 0)
+    return tariff_matrix/10
 
 def read_fatahi_dataset(path_to_file):
+    np.random.seed(42)
     """
     Fatahi Valilai, Omid. “Dataset for Logistics and Manufacturing
     Service Composition”. 17 Mar. 2021. Web. 9 June 2023.
@@ -93,10 +108,7 @@ def _read_sheet(path_to_file, sheet_name):
         - 1 * 4,
         nrows=1,
     )
-    np.random.seed(42)
-    transportation_cost = np.random.uniform(0.1, 0.3, (n_services,
-                                                       n_cities,
-                                                       n_cities))
+    transportation_cost = generate_tariff_matrix(10, dist, productivity, op_cost)
     return {
         "name": sheet_name,
         "n_operations": n_operations,
