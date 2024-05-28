@@ -15,7 +15,7 @@ def generate_tariff_matrix(num_companies, distance_matrix, productivity,
     tariff_matrix = operational_tariffs * random_factors[:, :, :]
     for company in range(num_companies):
         np.fill_diagonal(tariff_matrix[company], 0)
-    return tariff_matrix/10
+    return tariff_matrix
 
 def read_fatahi_dataset(path_to_file):
     np.random.seed(42)

@@ -2,6 +2,7 @@ from itertools import product
 
 import numpy as np
 from mip import BINARY, MINIMIZE, Model, xsum
+import time
 
 
 def find_path(gamma):
@@ -55,16 +56,18 @@ def mip_solve(problem):
                 model += gamma[i, k, m] + gamma[i + seq[1], k, m_] - 1 <= xsum(
                     delta[:, m, m_, i + seq[1], k]
                 )
-    model += np.sum(delta) <= np.sum(gamma)
+    model += xsum(delta) <= xsum(gamma)
+    start = time.time()
 
-    total_op_cost = np.sum(
-        (time_cost * op_cost / productivity)[:, None, :] * gamma
+    total_op_cost = xsum(
+        (time_cost * op_cost / productivity)[:, None, :].flatten() * gamma.flatten()
     )
 
-    total_logistic_cost = np.sum(
-        (transportation_cost * dist[None, ...])[..., None, None] * delta
+    total_logistic_cost = xsum(
+        (transportation_cost * dist[None, ...])[..., None, None].flatten() * delta.flatten()
     )
-
+    end = time.time()
+    print('Calculate costs', end - start)
     model.objective = total_op_cost + total_logistic_cost
 
     status = model.optimize(max_seconds=120)

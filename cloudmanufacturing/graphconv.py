@@ -1,6 +1,8 @@
 import dgl.function as fn
 from dgl.sampling import sample_neighbors
 import torch
+torch.autograd.set_detect_anomaly(True)
+torch.set_printoptions(profile="full")
 import torch.nn as nn
 from torch.nn import functional as F
 from cloudmanufacturing.graph import ss_type, os_type, so_type
@@ -37,13 +39,11 @@ def sample_so(graph, logits):
         )
         return subg.edges(etype='so')
 
-
 class AttnConvLayer(nn.Module):
     def __init__(self, s_shape, o_shape,
                  os_shape, ss_shape, out_dim):
         super().__init__()
         self.delta = nn.Linear(out_dim, 10)
-
         self.W_s = nn.Linear(s_shape, out_dim)
         self.W_os = nn.Linear(os_shape, out_dim)
         self.W_ss = nn.Linear(ss_shape, out_dim)
@@ -154,8 +154,8 @@ class GNN(nn.Module):
         self.dec = DotProductDecoder()
 
     def forward(self, graph):
-        s_feat = graph.ndata['feat']['s'].to(device)
-        o_feat = graph.ndata['feat']['o'].to(device)
+        s_feat = graph.ndata['feat']['s']
+        o_feat = graph.ndata['feat']['o']
         s_hid, o_hid, delta_logits = self.convs[0](graph, s_feat, o_feat)
         for conv in self.convs[1:]:
             s_hid, o_hid, delta_logits = conv(graph, torch.relu(s_hid), torch.relu(o_hid))
