@@ -2,6 +2,8 @@ import torch
 import dgl
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import StandardScaler
+
 
 ss_type = ('s', 'ss', 's')
 os_type = ('o', 'os', 's')
@@ -106,8 +108,8 @@ def dglgraph(problem, gamma, delta):
                              g.edges(etype="ss")[1]] * dist[g.edges(etype="ss")]
     
     g.edata['feat'] = {
-        'os': torch.FloatTensor(serves_feat.T),
-        'ss': torch.FloatTensor(transp.T),
+        'os': torch.FloatTensor(StandardScaler().fit_transform(serves_feat.T)),
+        'ss': torch.FloatTensor(StandardScaler().fit_transform(transp.T)),
     }
     g.edata['target'] = {
         'os': torch.FloatTensor(target)[:, None],
