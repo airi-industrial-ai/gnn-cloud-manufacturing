@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
+from openpyxl import load_workbook
+from joblib import Parallel, delayed
 
 def generate_tariff_matrix(num_companies, distance_matrix, productivity,
                            cost_operations, variability=0.1):
@@ -23,31 +25,16 @@ def read_fatahi_dataset(path_to_file):
     Fatahi Valilai, Omid. “Dataset for Logistics and Manufacturing
     Service Composition”. 17 Mar. 2021. Web. 9 June 2023.
     """
-    sheet_names = [
-        "5,10,10-1",
-        "5,10,10-2",
-        "5,10,10-3",
-        "10,10,10-1",
-        "10,10,10-2",
-        "10,10,10-3",
-        "5,10,20-1",
-        "5,10,20-2",
-        "5,10,20-3",
-        "5,20,10-1",
-        "5,20,10-2",
-        "5,20,10-3",
-        "5,20,20-1",
-        "5,20,20-2",
-        "5,20,20-3",
-        "5,5,5-1",
-        "5,5,5-2",
-        "5,5,5-3",
-    ]
-    res = []
-    for sheet_name in tqdm(sheet_names):
-        res.append(_read_sheet(path_to_file, sheet_name))
-    return res
+    workbook = load_workbook(filename=path_to_file, read_only=True)
+    sheet_names = workbook.sheetnames
 
+    res = []
+    def process_sheet(sheet_name):
+        return _read_sheet(path_to_file, sheet_name)
+    res = Parallel(n_jobs=-1)(
+        delayed(process_sheet)(sheet_name) for sheet_name in tqdm(sheet_names)
+    )
+    return res
 
 def _read_sheet(path_to_file, sheet_name):
     n_services = 10
