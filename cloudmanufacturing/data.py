@@ -3,6 +3,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 from openpyxl import load_workbook
 from joblib import Parallel, delayed
+from sklearn.preprocessing import normalize
 
 def generate_tariff_matrix(num_companies, distance_matrix, productivity,
                            cost_operations, variability=0.1):
@@ -12,9 +13,9 @@ def generate_tariff_matrix(num_companies, distance_matrix, productivity,
     # if it's unprofitale to produce something in the city than it's more expensive logistics
     baseline = np.mean(cost_operations, axis=0).reshape(-1,1)
     # higher productivity makes price lower
-    operational_tariffs = (distance_matrix+baseline*0.1) * (1 - productivity.reshape(-1, 1))
+    operational_tariffs = normalize((distance_matrix+baseline*0.1) * (1 - productivity.reshape(-1, 1)))
     random_factors = 1 + np.random.randn(num_companies, num_cities, num_cities) * variability
-    tariff_matrix = operational_tariffs * random_factors[:, :, :]
+    tariff_matrix = operational_tariffs * random_factors[:, :, :] + 1
     for company in range(num_companies):
         np.fill_diagonal(tariff_matrix[company], 0)
     return tariff_matrix

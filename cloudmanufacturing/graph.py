@@ -4,7 +4,6 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
 
-
 ss_type = ('s', 'ss', 's')
 os_type = ('o', 'os', 's')
 so_type = ('s', 'so', 'o')

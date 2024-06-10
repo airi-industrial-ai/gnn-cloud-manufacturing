@@ -52,7 +52,7 @@ def mip_solve(problem):
                 model += gamma[i, k, m] + gamma[i + seq[1], k, m_] - 1 <= xsum(
                     delta[:, m, m_, i + seq[1], k]
                 )
-    model += xsum(delta.flatten()) <= xsum(gamma.flatten())
+    # model += xsum(delta.flatten()) <= xsum(gamma.flatten())
 
     total_op_cost = xsum(
         ((time_cost * op_cost / productivity)[:, None, :] * gamma).flatten()
