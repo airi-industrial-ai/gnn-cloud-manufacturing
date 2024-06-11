@@ -13,12 +13,12 @@ def generate_tariff_matrix(num_companies, distance_matrix, productivity,
     # if it's unprofitale to produce something in the city than it's more expensive logistics
     baseline = np.mean(cost_operations, axis=0).reshape(-1,1)
     # higher productivity makes price lower
-    operational_tariffs = normalize((distance_matrix+baseline*0.1) * (1 - productivity.reshape(-1, 1)))
+    operational_tariffs = (distance_matrix + baseline) * (1 - productivity.reshape(-1, 1))
     random_factors = 1 + np.random.randn(num_companies, num_cities, num_cities) * variability
-    tariff_matrix = operational_tariffs * random_factors[:, :, :] + 1
+    tariff_matrix = normalize(operational_tariffs) * random_factors[:, :, :]
     for company in range(num_companies):
         np.fill_diagonal(tariff_matrix[company], 0)
-    return tariff_matrix
+    return tariff_matrix*0.5
 
 def read_fatahi_dataset(path_to_file):
     np.random.seed(42)

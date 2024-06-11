@@ -6,7 +6,7 @@ random.seed(42)
 np.random.seed(42)
 
 def create_distance_matrix(n_cities):    
-    cities = np.array([[random.randint(0, 2000), random.randint(0, 2000)] for i in range(n_cities)])
+    cities = np.array([[random.randint(0, 2500), random.randint(0, 2500)] for i in range(n_cities)])
     distances = np.zeros((n_cities, n_cities), dtype=int)
     for i in range(n_cities):
         for j in range(i+1, n_cities):
@@ -14,16 +14,11 @@ def create_distance_matrix(n_cities):
     return distances
 
 def create_excel_table(wb, n_operations, n_suboperations, n_cities,  n_problem=1):
-
-    # Создаем новый файл Excel
-    # wb = openpyxl.load_workbook(filepath)
-
-    # Выбираем активный лист
     sheet_name = f"{n_operations},{n_suboperations},{n_cities}-{n_problem}"
     sheet = wb.create_sheet(title=sheet_name)
     sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=16)
-    sheet.cell(row=1, column=1).value = f"problem No.{n_problem} with {n_operations} Operation, {n_suboperations} Sub-operations, {n_cities} Cities"
-
+    sheet.cell(row=1, column=1).value =\
+        f"problem No.{n_problem} with {n_operations} Operation, {n_suboperations} Sub-operations, {n_cities} Cities"
     start_oper = 5
     
     # Создаем симметричную матрицу расстояний
@@ -87,7 +82,7 @@ def create_excel_table(wb, n_operations, n_suboperations, n_cities,  n_problem=1
         sheet.cell(row=start_cost, column=i+1).value = f"city{i}"
     for i in range(start_cost, n_suboperations + start_cost):
         sheet.cell(row=i+1, column=1).value = f"Sub-operation{i}"
-    
+
     start_prod =  n_suboperations+start_cost+4
 
     sheet.merge_cells(start_row=start_prod-1, start_column=1, end_row=start_prod-1, end_column=n_cities)
@@ -98,7 +93,7 @@ def create_excel_table(wb, n_operations, n_suboperations, n_cities,  n_problem=1
     return wb
 
 def generate_cost_vectors(n):
-    num_ones = random.randint(5, n-1)
+    num_ones = random.randint(2, n-1)
     
     # Создаем вектор с num_ones единицами и (n - num_ones) нулями
     vector = np.append(np.random.uniform(20, 90, (n,)),(['Inf'] * (n - num_ones)))
@@ -110,7 +105,7 @@ def generate_cost_vectors(n):
     return vector, vector_2
 
 def generate_vector(n):
-    num_ones = random.randint(3, n-3)
+    num_ones = random.randint(3, n-2)
     vector = [1] * num_ones + [0] * (n - num_ones)
     random.shuffle(vector)
     return vector

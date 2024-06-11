@@ -8,8 +8,6 @@ from torch.nn import functional as F
 from cloudmanufacturing.graph import ss_type, os_type, so_type
 import numpy as np
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 def cat_s_ss(edges):
     return {'s_ss': torch.cat([edges.src['s_feat'], edges.data['feat']], dim=1)}
 
