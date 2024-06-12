@@ -5,7 +5,7 @@ import random
 random.seed(42)
 np.random.seed(42)
 
-def create_distance_matrix(n_cities):    
+def create_distance_matrix(n_cities):
     cities = np.array([[random.randint(0, 2500), random.randint(0, 2500)] for i in range(n_cities)])
     distances = np.zeros((n_cities, n_cities), dtype=int)
     for i in range(n_cities):
@@ -93,7 +93,7 @@ def create_excel_table(wb, n_operations, n_suboperations, n_cities,  n_problem=1
     return wb
 
 def generate_cost_vectors(n):
-    num_ones = random.randint(2, n-1)
+    num_ones = random.randint(3, n-1)
     
     # Создаем вектор с num_ones единицами и (n - num_ones) нулями
     vector = np.append(np.random.uniform(20, 90, (n,)),(['Inf'] * (n - num_ones)))

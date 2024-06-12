@@ -63,7 +63,7 @@ def mip_solve(problem):
     )
     model.objective = total_op_cost + total_logistic_cost
 
-    status = model.optimize(max_seconds=120)
+    status = model.optimize(max_seconds=600)
 
     _delta = np.reshape(list(map(lambda x: x.x, delta.flatten().tolist())), delta_shape)
     _gamma = np.reshape(list(map(lambda x: x.x, gamma.flatten().tolist())), gamma_shape)
