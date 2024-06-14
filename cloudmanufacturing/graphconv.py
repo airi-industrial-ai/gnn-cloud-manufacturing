@@ -134,18 +134,18 @@ class DotProductDecoder(nn.Module):
             return logits
 
 class GNN(nn.Module):
-    def __init__(self,s_shape, o_shape, os_shape,
-                 ss_shape, out_dim, n_layers):
+    def __init__(self,s_shape_init, o_shape_init, os_shape_init,
+                 ss_shape_init, out_dim, n_layers):
         super().__init__()
 
-        os_shape = o_shape + os_shape
-        ss_shape = s_shape + ss_shape
+        os_shape = o_shape_init + os_shape_init
+        ss_shape = s_shape_init + ss_shape_init
 
-        convs = [AttnConvLayer(s_shape, o_shape,
+        convs = [AttnConvLayer(s_shape_init, o_shape_init,
                                os_shape, ss_shape, out_dim)]
         for _ in range(n_layers-1):
-            os_shape = out_dim + os_shape
-            ss_shape = out_dim + ss_shape
+            os_shape = out_dim + os_shape_init
+            ss_shape = out_dim + ss_shape_init
             convs.append(AttnConvLayer(out_dim, out_dim,
                                        os_shape, ss_shape, out_dim))
         self.convs = nn.ModuleList(convs)

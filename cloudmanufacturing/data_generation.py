@@ -73,7 +73,7 @@ def create_excel_table(wb, n_operations, n_suboperations, n_cities,  n_problem=1
     
     for i in range(n_suboperations):
         for j in range(n_cities):
-            sheet.cell(row=i+start_cost+1, column=j+2).value = costs[i][j]           
+            sheet.cell(row=i+start_cost+1, column=j+2).value = costs[i][j]  
     
     sheet.merge_cells(start_row=start_cost-1, start_column=1, end_row=start_cost-1, end_column=n_cities+1)
     sheet.cell(row=start_cost-1, column=1).value = "Costs Mat"
@@ -96,8 +96,10 @@ def generate_cost_vectors(n):
     num_ones = random.randint(3, n-1)
     
     # Создаем вектор с num_ones единицами и (n - num_ones) нулями
-    vector = np.append(np.random.uniform(20, 90, (n,)),(['Inf'] * (n - num_ones)))
-    vector_2 = np.append(np.random.uniform(2, 10, (n,)),(['Inf'] * (n - num_ones)))
+    vector = np.append(np.round(np.random.uniform(20, 90, (n,)),2),
+                       (['Inf'] * (n - num_ones)))
+    vector_2 = np.append(np.round(np.random.uniform(2, 10, (n,)),2),
+                         (['Inf'] * (n - num_ones)))
     
     seed = random.randint(1, 100)
     random.Random(seed).shuffle(vector)
