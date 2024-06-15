@@ -109,7 +109,7 @@ class Trainer():
     def update_metrics(self, **to_update):
         wandb.log(to_update)
     
-    def run_experiment(self, num_epoch=1000, validation_rate=30, service_rate=0.5):
+    def run_experiment(self, num_epoch=1000, validation_rate=75, service_rate=0.5):
         wandb.config.update({
             'num_epoch':num_epoch,
             'validation_rate':validation_rate,
@@ -124,7 +124,7 @@ class Trainer():
                 epoch=epoch
             )
             # collect validation info
-            if (epoch + 1) % validation_rate == 0 or epoch==0:
+            if (epoch + 1) % validation_rate == 0 or epoch==0 or epoch+1==num_epoch:
                 obj_train = validate_objective(
                     self.model, self.train_dataset, 'train'
                 )
