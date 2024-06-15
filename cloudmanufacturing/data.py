@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 from openpyxl import load_workbook
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, Memory
 from sklearn.preprocessing import normalize
+memory = Memory("./cache/", verbose=1)
 
 def generate_tariff_matrix(num_companies, distance_matrix, productivity,
                            cost_operations, variability=0.1):
@@ -20,6 +21,8 @@ def generate_tariff_matrix(num_companies, distance_matrix, productivity,
         np.fill_diagonal(tariff_matrix[company], 0)
     return tariff_matrix*0.5
 
+
+@memory.cache
 def read_fatahi_dataset(path_to_file):
     np.random.seed(42)
     """

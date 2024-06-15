@@ -70,7 +70,6 @@ class NaiveSolver:
                 available_operations, cost_operations,
                 trans_cost, n_operat, gamma, delta
             )
-
             problem_cost += cost
             problem_path[f"suboperation_{n_operat}"] = path
 
