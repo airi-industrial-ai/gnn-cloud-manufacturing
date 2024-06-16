@@ -109,20 +109,17 @@ class Trainer():
     def update_metrics(self, **to_update):
         wandb.log(to_update)
     
-    def run_experiment(self, num_epoch=1000, validation_rate=75, service_rate=0.5):
+    def run_experiment(self, num_epoch=1000, validation_rate=75, service_rate=0.5,
+                       scheduler_rate=30):
         wandb.config.update({
             'num_epoch':num_epoch,
             'validation_rate':validation_rate,
-            'service_rate':service_rate
+            'scheduler_rate':scheduler_rate,
+            'service_rate':service_rate,
         })
         for epoch in trange(num_epoch):
             train_update = self.train_epoch(service_rate=service_rate)
             test_update = self.test_epoch(service_rate=service_rate)
-            self.update_metrics(
-                **train_update, **test_update,
-                lr=self.optim.param_groups[0]["lr"],
-                epoch=epoch
-            )
             # collect validation info
             if (epoch + 1) % validation_rate == 0 or epoch==0 or epoch+1==num_epoch:
                 obj_train = validate_objective(
@@ -136,6 +133,17 @@ class Trainer():
                     **obj_train, **obj_test,
                     epoch=epoch
                 )
-                # update scheduler
-                if self.tracker.get('scheduler', 0):
+            # Update scheduler if exist
+            if self.scheduler:
+                if (epoch+1) % scheduler_rate == 0:
                     self.scheduler.step()
+            # Take lr
+                step_lr = self.scheduler.get_last_lr()[0]
+            else:
+                step_lr = self.optim.param_groups[0]["lr"]
+            # update general metrics
+            self.update_metrics(
+                **train_update, **test_update,
+                lr = step_lr,
+                epoch=epoch
+            )
