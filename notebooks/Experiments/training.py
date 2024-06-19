@@ -10,7 +10,7 @@ from torch.optim.lr_scheduler import ExponentialLR
 from sklearn.model_selection import train_test_split
 
 
-from cloudmanufacturing.graphconv import GNN
+from cloudmanufacturing.models import GNN, GNN_att
 from cloudmanufacturing.graph import os_type, so_type, ss_type
 from exp_validation import validate_objective
 from data_preparation import GraphDataset
@@ -53,9 +53,13 @@ class Trainer():
                             'test_batch':test_batch})
 
     def create_model(self, out_dim, lr, layers,
-                     sheduler=False, scheduler_gamma=0.98):
-        model = GNN(s_shape_init=1, o_shape_init=20, os_shape_init=2,
-                ss_shape_init=10, out_dim=out_dim, n_layers=layers).to(self.device)
+                     sheduler=False, scheduler_gamma=0.98, att_model=True):
+        if att_model:
+            model = GNN_att(s_shape_init=1, o_shape_init=20, os_shape_init=2,
+                    ss_shape_init=10, out_dim=out_dim, n_layers=layers).to(self.device)
+        else:
+            model = GNN(s_shape_init=1, o_shape_init=20, os_shape_init=2,
+                    ss_shape_init=10, out_dim=out_dim, n_layers=layers).to(self.device)
         optim = Adam(model.parameters(), lr=lr)
         if sheduler:
             scheduler = ExponentialLR(optim, gamma=scheduler_gamma)
@@ -121,29 +125,25 @@ class Trainer():
             train_update = self.train_epoch(service_rate=service_rate)
             test_update = self.test_epoch(service_rate=service_rate)
             # collect validation info
-            if (epoch + 1) % validation_rate == 0 or epoch==0 or epoch+1==num_epoch:
+            if epoch % validation_rate == 0 or epoch==0 or epoch+1==num_epoch:
                 obj_train = validate_objective(
                     self.model, self.train_dataset, 'train'
                 )
                 obj_test = validate_objective(
                     self.model, self.test_dataset, 'test'
                 )
+                if self.scheduler:
+                    step_lr = self.scheduler.get_last_lr()[0]
+                else:
+                    step_lr = self.optim.param_groups[0]["lr"]
 
                 self.update_metrics(
                     **obj_train, **obj_test,
+                    **train_update, **test_update,
+                    lr = step_lr,
                     epoch=epoch
                 )
             # Update scheduler if exist
-            if self.scheduler:
-                if (epoch+1) % scheduler_rate == 0:
-                    self.scheduler.step()
-            # Take lr
-                step_lr = self.scheduler.get_last_lr()[0]
-            else:
-                step_lr = self.optim.param_groups[0]["lr"]
-            # update general metrics
-            self.update_metrics(
-                **train_update, **test_update,
-                lr = step_lr,
-                epoch=epoch
-            )
+            if epoch % scheduler_rate == 0 and self.scheduler:
+                self.scheduler.step()
+            
