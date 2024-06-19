@@ -192,21 +192,26 @@ class ConvLayer(nn.Module):
         graph.apply_edges(cat_s_ss, etype='ss')
         graph.apply_edges(cat_o_os, etype='os')
         # Apply linear layer
-        graph.edata['h_ss'] = {'ss': self.W_ss(graph.edata['s_ss'][ss_type])}
-        graph.edata['h_os'] = {'os': self.W_os(graph.edata['o_os'][os_type])}
+        graph.edata['h_ss'] = {'ss': F.relu(self.W_ss(graph.edata['s_ss'][ss_type]))}
+        graph.edata['h_os'] = {'os': F.relu(self.W_os(graph.edata['o_os'][os_type]))}
         # Apply linear layer for s nodes to make delta prediction
         graph.ndata['h_s'] = {'s': self.W_s(s_feat)}
         # Concatenate hidden feature representation
-        graph.apply_edges(cat_h_ss_s, etype='ss')
-        graph.apply_edges(cat_h_os_s, etype='os')
+        # graph.apply_edges(cat_h_ss_s, etype='ss')
+        # graph.apply_edges(cat_h_os_s, etype='os')
         # Apply linear layer to edges to make features with dim=1 (attention)
-        graph.edata['e_ss'] = {'ss': F.relu(self.W(graph.edata['h_ss_s'][ss_type]))}
-        graph.edata['e_os'] = {'os': F.relu(self.W(graph.edata['h_os_s'][os_type]))}
+        # graph.edata['e_ss'] = {'ss': F.relu(self.W(graph.edata['h_ss_s'][ss_type]))}
+        # graph.edata['e_os'] = {'os': F.relu(self.W(graph.edata['h_os_s'][os_type]))}
 
         # Again update everything
+        # graph.multi_update_all({
+        #     'ss': (fn.copy_e('e_ss', 'e_ss'), fn.sum('e_ss', 'z_ss')),
+        #     'os': (fn.copy_e('e_os', 'e_os'), fn.sum('e_os', 'z_os')),
+        # }, 'sum')
+
         graph.multi_update_all({
-            'ss': (fn.copy_e('e_ss', 'e_ss'), fn.sum('e_ss', 'z_ss')),
-            'os': (fn.copy_e('e_os', 'e_os'), fn.sum('e_os', 'z_os')),
+            'ss': (fn.copy_e('h_ss', 'h_ss'), fn.sum('h_ss', 'z_ss')),
+            'os': (fn.copy_e('h_os', 'h_os'), fn.sum('h_os', 'z_os')),
         }, 'sum')
 
         # Make a sum of features

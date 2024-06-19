@@ -69,6 +69,7 @@ class Trainer():
         else:
             self.model = model
             self.optim = optim
+            self.scheduler = None
 
         wandb.config.update({
             'out_dim':out_dim,
