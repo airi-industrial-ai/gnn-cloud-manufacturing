@@ -160,7 +160,7 @@ class ConvLayer(nn.Module):
         self.W_s = nn.Linear(s_shape, out_dim)
         self.W_os = nn.Linear(os_shape, out_dim)
         self.W_ss = nn.Linear(ss_shape, out_dim)
-        self.W = nn.Linear(out_dim * 2, out_dim)
+        self.W_fin = nn.Linear(out_dim, out_dim)
 
         self.W_in = nn.Linear(o_shape, out_dim)
         self.W_self = nn.Linear(o_shape, out_dim)
@@ -192,10 +192,10 @@ class ConvLayer(nn.Module):
         graph.apply_edges(cat_s_ss, etype='ss')
         graph.apply_edges(cat_o_os, etype='os')
         # Apply linear layer
-        graph.edata['h_ss'] = {'ss': F.relu(self.W_ss(graph.edata['s_ss'][ss_type]))}
-        graph.edata['h_os'] = {'os': F.relu(self.W_os(graph.edata['o_os'][os_type]))}
+        graph.edata['h_ss'] = {'ss': self.W_ss(graph.edata['s_ss'][ss_type])}
+        graph.edata['h_os'] = {'os': self.W_os(graph.edata['o_os'][os_type])}
         # Apply linear layer for s nodes to make delta prediction
-        graph.ndata['h_s'] = {'s': self.W_s(s_feat)}
+        # graph.ndata['h_s'] = {'s': self.W_s(s_feat)}
         # Concatenate hidden feature representation
         # graph.apply_edges(cat_h_ss_s, etype='ss')
         # graph.apply_edges(cat_h_os_s, etype='os')
@@ -215,7 +215,7 @@ class ConvLayer(nn.Module):
         }, 'sum')
 
         # Make a sum of features
-        z = graph.ndata['z_ss']['s'] + graph.ndata['z_os']['s']
+        z = self.W_fin(F.relu(graph.ndata['z_ss']['s'] + graph.ndata['z_os']['s']))
         return z
 
     def _conv_x(self, graph, o_feat):
