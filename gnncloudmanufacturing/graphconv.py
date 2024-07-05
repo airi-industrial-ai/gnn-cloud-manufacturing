@@ -3,7 +3,7 @@ from dgl.sampling import sample_neighbors
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from cloudmanufacturing.graph import ss_type, os_type, so_type
+from gnncloudmanufacturing.graph import ss_type, os_type, so_type
 import numpy as np
 
 
