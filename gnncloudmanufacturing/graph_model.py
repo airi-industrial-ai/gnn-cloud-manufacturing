@@ -3,8 +3,10 @@ from dgl.sampling import sample_neighbors
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from gnncloudmanufacturing.graph import ss_type, os_type, so_type
-import numpy as np
+from torch.optim import Adam
+from gnncloudmanufacturing.utils import ss_type, os_type, so_type
+from gnncloudmanufacturing.validation import total_cost_from_graph
+from pytorch_lightning import LightningModule
 
 
 def cat_s_ss(edges):
@@ -29,6 +31,7 @@ def edge_den_os(nodes):
 
 def edge_den_ss(nodes):
     return {'den_ss': torch.sum(torch.exp(nodes.mailbox['e_ss']), dim=1)}
+
 
 def sample_so(graph, logits):
     with graph.local_scope():
@@ -129,14 +132,16 @@ class DotProductDecoder(nn.Module):
             logits = graph.edata['dot'][so_type]
             return logits
 
-class GNN(nn.Module):
-    def __init__(self, ins_dim, ino_dim, out_dim, n_layers):
+
+class GNN(LightningModule):
+    def __init__(self, ins_dim, ino_dim, out_dim, n_layers, lr):
         super().__init__()
         convs = [AttnConvLayer(ins_dim, ino_dim, out_dim)]
         for _ in range(n_layers-1):
             convs.append(AttnConvLayer(out_dim, out_dim, out_dim))
         self.convs = nn.ModuleList(convs)
         self.dec = DotProductDecoder()
+        self.lr = lr
     
     def forward(self, graph):
         s_feat = graph.ndata['feat']['s']
@@ -147,14 +152,34 @@ class GNN(nn.Module):
         logits = self.dec(graph, s_hid, o_hid)
         return logits
     
-    def predict(self, graph, problem):
+    def predict(self, graph):
         logits = self.forward(graph)
         s, o = sample_so(graph, logits)
-        operation_index = graph.ndata['operation_index']['o'][o]
-        gamma = np.zeros(
-            (problem['n_operations'], problem['n_tasks'], problem['n_cities'])
-        )
-        for i in range(len(operation_index)):
-            operation, task, city = operation_index[i, 1], operation_index[i, 0], s[i]
-            gamma[operation, task, city] = 1
-        return gamma
+        edge_ids = graph.edge_ids(o, s, etype=os_type)
+        pred = torch.zeros(graph.number_of_edges(etype=os_type), 1)
+        pred[edge_ids] = 1
+        return pred
+    
+    def training_step(self, batch, batch_idx):
+        graph, _ = batch
+        target = graph.edata['target'][os_type]
+        logits = self.forward(graph)
+        loss = F.binary_cross_entropy_with_logits(logits, target)
+        self.log("train_loss", loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        graph, _ = batch
+        target = graph.edata['target'][os_type]
+        logits = self.forward(graph)
+        loss = F.binary_cross_entropy_with_logits(logits, target)
+        self.log("val_loss", loss)
+
+        pred = self.predict(graph)
+        total_cost = total_cost_from_graph(graph, pred)
+        self.log("val_total_cost", total_cost)
+        return loss, total_cost
+    
+    def configure_optimizers(self):
+        opt = Adam(self.parameters(), lr=self.lr)
+        return opt

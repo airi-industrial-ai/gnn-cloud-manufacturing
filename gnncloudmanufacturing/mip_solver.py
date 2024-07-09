@@ -2,7 +2,7 @@ import numpy as np
 from mip import Model, BINARY, MINIMIZE, xsum
 from itertools import product
 
-def mip_solve(problem):
+def mip_solve(problem, max_seconds=120):
     n_tasks = problem['n_tasks']
     n_operations = problem['n_operations']
     n_cities = problem['n_cities']
@@ -32,7 +32,7 @@ def mip_solve(problem):
     total_logistic_cost = np.sum((transportation_cost[:, None, None] * dist[None, ...])[..., None, None] * delta)
     model.objective = total_op_cost + total_logistic_cost
 
-    status = model.optimize(max_seconds=120)
+    status = model.optimize(max_seconds=max_seconds)
     
     _delta = np.reshape(list(map(lambda x: x.x, delta.flatten().tolist())), delta_shape)
     _gamma = np.reshape(list(map(lambda x: x.x, gamma.flatten().tolist())), gamma_shape)
