@@ -1,5 +1,6 @@
 import numpy as np
 from gnncloudmanufacturing.utils import os_type, ss_type
+from itertools import product
 
 
 def total_cost_from_gamma(problem, gamma, delta):
@@ -36,3 +37,17 @@ def total_cost_from_graph(graph, pred, transportation_cost=0.3):
         total_logistic_cost += (dist * transportation_cost).sum()
     
     return total_op_cost + total_logistic_cost
+
+
+def check_feasibility(gamma, delta, problem):
+    n_operations = problem['n_operations']
+    n_tasks = problem['n_tasks']
+    operation = problem['operation']
+    n_cities = problem['n_cities']
+    for i, k in product(range(n_operations), range(n_tasks)):
+        assert sum(gamma[i, k]) == operation[i, k]
+    for i, k, m, m_ in product(
+        range(n_operations-1), range(n_tasks), range(n_cities), range(n_cities)):
+        seq = np.where(operation[i:, k] == 1)[0]
+        if operation[i, k] and len(seq) > 1:
+            assert gamma[i, k, m] + gamma[i+seq[1], k, m_] - 1 <= sum(delta[:, m, m_, i, k])
