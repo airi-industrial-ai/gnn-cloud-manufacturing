@@ -36,13 +36,13 @@ def edge_den_ss(nodes):
 def sample_so(graph, logits):
     with graph.local_scope():
         graph.edata['prob'] = {'so': torch.sigmoid(logits)}
-        subg = sample_neighbors(
-            graph, 
-            nodes={'o': graph.nodes('o')}, 
-            fanout={'backward': 0, 'forward': 0, 'os': 0, 'so': 1, 'ss': 0},
-            prob='prob'
-        )
-        return subg.edges(etype='so')
+    subg = sample_neighbors(
+        graph, 
+        nodes={'o': graph.nodes('o')}, 
+        fanout={'backward': 0, 'forward': 0, 'os': 0, 'so': 1, 'ss': 0},
+        prob='prob'
+    )
+    return subg.edges(etype='so')
 
 
 class AttnConvLayer(nn.Module):
