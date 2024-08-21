@@ -24,8 +24,6 @@ def graph_from_problem(problem, gamma=None):
         for j in range(n_operations):
             if operation[j, i] == 1:
                 operation_index.append((i, j))
-    operation_index.append([n_tasks // 2, -1])
-    operation_index.append([n_tasks // 2, n_operations])
     operation_index = np.array(operation_index)
     
     adj_operation = np.zeros((operation_index.shape[0], operation_index.shape[0]))
@@ -36,8 +34,6 @@ def graph_from_problem(problem, gamma=None):
             u = operation_index.tolist().index([i, path[j]])
             v = operation_index.tolist().index([i, path[j+1]])
             adj_operation[u, v] = 1
-        adj_operation[-2, operation_index.tolist().index([i, path[0]])] = 1
-        adj_operation[operation_index.tolist().index([i, path[-1]]), -1] = 1
 
     full_time_cost = np.tile(time_cost, (n_tasks, 1))
     full_time_cost = full_time_cost[operation.T.reshape(-1).astype(bool)]
