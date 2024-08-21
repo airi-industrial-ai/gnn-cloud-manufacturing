@@ -135,12 +135,13 @@ class DotProductDecoder(nn.Module):
 
 
 class GNN(LightningModule):
-    def __init__(self, ins_dim, ino_dim, out_dim, n_layers, lr):
+    def __init__(self, ins_dim, ino_dim, out_dim, n_layers, lr, dropout_rate=0.2):
         super().__init__()
         convs = [AttnConvLayer(ins_dim, ino_dim, out_dim)]
         for _ in range(n_layers-1):
             convs.append(AttnConvLayer(out_dim, out_dim, out_dim))
         self.convs = nn.ModuleList(convs)
+        self.dropout = nn.Dropout(dropout_rate)
         self.dec = DotProductDecoder()
         self.lr = lr
     
@@ -149,6 +150,7 @@ class GNN(LightningModule):
         o_feat = graph.ndata['feat']['o']
         s_hid, o_hid = self.convs[0](graph, s_feat, o_feat)
         for conv in self.convs[1:]:
+            s_hid, o_hid = self.dropout(s_hid), self.dropout(o_hid)
             s_hid, o_hid = conv(graph, torch.relu(s_hid), torch.relu(o_hid))
         logits = self.dec(graph, s_hid, o_hid)
         return logits

@@ -1,7 +1,6 @@
 import torch
 import dgl
 import numpy as np
-from sklearn.preprocessing import OneHotEncoder
 from dgl.data import DGLDataset
 
 
@@ -10,7 +9,7 @@ os_type = ('o', 'os', 's')
 so_type = ('s', 'so', 'o')
 
 
-def graph_from_problem(problem, gamma=None, max_operations=None):
+def graph_from_problem(problem, gamma=None):
     n_tasks = problem['n_tasks']
     n_operations = problem['n_operations']
     operation = problem['operation']
@@ -18,8 +17,6 @@ def graph_from_problem(problem, gamma=None, max_operations=None):
     time_cost = problem['time_cost']
     op_cost = problem['op_cost']
     productivity = problem['productivity']
-    if max_operations is None:
-        max_operations = problem['n_operations']
 
     operation_index = []
     for i in range(n_tasks):
@@ -53,10 +50,12 @@ def graph_from_problem(problem, gamma=None, max_operations=None):
     g = dgl.heterograph(graph_data)
     g = dgl.add_self_loop(g, etype='ss')
 
-    op_feat = torch.zeros(len(operation_index), max_operations)
-    op_feat[range(len(operation_index)), operation_index[:, 1]] = 1
+    pos_encoding = np.vstack([
+            np.cos(operation_index[:, 1] / problem['n_operations'] * 2 * np.pi), 
+            np.sin(operation_index[:, 1] / problem['n_operations'] * 2 * np.pi),
+    ])
     g.ndata['feat'] = {
-        'o': torch.FloatTensor(op_feat),
+        'o': torch.FloatTensor(pos_encoding.T),
         's': torch.FloatTensor(productivity[:, None])
     }
     g.ndata['operation_index'] = {
