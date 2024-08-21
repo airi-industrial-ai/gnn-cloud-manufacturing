@@ -1,5 +1,6 @@
 import dgl.function as fn
 from dgl.sampling import sample_neighbors
+import dgl
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -36,12 +37,12 @@ def edge_den_ss(nodes):
 def sample_so(graph, logits):
     with graph.local_scope():
         graph.edata['prob'] = {'so': torch.sigmoid(logits)}
-    subg = sample_neighbors(
-        graph, 
-        nodes={'o': graph.nodes('o')}, 
-        fanout={'backward': 0, 'forward': 0, 'os': 0, 'so': 1, 'ss': 0},
-        prob='prob'
-    )
+        subg = sample_neighbors(
+            graph, 
+            nodes={'o': graph.nodes('o')}, 
+            fanout={'backward': 0, 'forward': 0, 'os': 0, 'so': 1, 'ss': 0},
+            prob='prob'
+        )
     return subg.edges(etype='so')
 
 
@@ -176,8 +177,14 @@ class GNN(LightningModule):
         self.log("val_loss", loss)
 
         pred = self.predict(graph)
-        total_cost = total_cost_from_graph(graph, pred)
-        self.log("val_total_cost", total_cost)
+        total_cost = 0
+        i = 0
+        for subgraph in dgl.unbatch(graph):
+            num_edges = subgraph.num_edges(os_type)
+            total_cost += total_cost_from_graph(subgraph, pred[i:i+num_edges])
+            i = num_edges
+
+        self.log("val_total_cost", total_cost/graph.batch_size)
         return loss, total_cost
     
     def configure_optimizers(self):
