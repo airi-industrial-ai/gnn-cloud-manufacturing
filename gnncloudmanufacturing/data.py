@@ -2,31 +2,32 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
-def read_fatahi_dataset(path_to_file):
+def read_fatahi_dataset(path_to_file, sheet_names=None):
     """
     Fatahi Valilai, Omid. “Dataset for Logistics and Manufacturing 
     Service Composition”. 17 Mar. 2021. Web. 9 June 2023.
     """
-    sheet_names = [
-        '5,10,10-1',
-        '5,10,10-2',
-        '5,10,10-3',
-        '10,10,10-1',
-        '10,10,10-2',
-        '10,10,10-3',
-        '5,10,20-1',
-        '5,10,20-2',
-        '5,10,20-3',
-        '5,20,10-1',
-        '5,20,10-2',
-        '5,20,10-3',
-        '5,20,20-1',
-        '5,20,20-2',
-        '5,20,20-3',
-        '5,5,5-1',
-        '5,5,5-2',
-        '5,5,5-3',
-    ]
+    if sheet_names is None:
+        sheet_names = [
+            '5,10,10-1',
+            '5,10,10-2',
+            '5,10,10-3',
+            '10,10,10-1',
+            '10,10,10-2',
+            '10,10,10-3',
+            '5,10,20-1',
+            '5,10,20-2',
+            '5,10,20-3',
+            '5,20,10-1',
+            '5,20,10-2',
+            '5,20,10-3',
+            '5,20,20-1',
+            '5,20,20-2',
+            '5,20,20-3',
+            '5,5,5-1',
+            '5,5,5-2',
+            '5,5,5-3',
+        ]
     res = []
     for sheet_name in tqdm(sheet_names):
         res.append(_read_sheet(path_to_file, sheet_name))
