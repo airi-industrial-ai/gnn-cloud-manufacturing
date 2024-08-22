@@ -50,12 +50,8 @@ def graph_from_problem(problem, gamma=None):
     g = dgl.heterograph(graph_data)
     g = dgl.add_self_loop(g, etype='ss')
 
-    pos_encoding = np.vstack([
-            np.cos(operation_index[:, 1] / problem['n_operations'] * 2 * np.pi), 
-            np.sin(operation_index[:, 1] / problem['n_operations'] * 2 * np.pi),
-    ])
     g.ndata['feat'] = {
-        'o': torch.FloatTensor(pos_encoding.T),
+        'o': torch.ones(len(operation_index), 1),
         's': torch.FloatTensor(productivity[:, None])
     }
     g.ndata['operation_index'] = {
