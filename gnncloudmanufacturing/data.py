@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.random as random
 import pandas as pd
 from tqdm.auto import tqdm
 
@@ -70,7 +71,7 @@ def _read_sheet(path_to_file, sheet_name):
         skiprows=5*3+n_operations+n_cities-1*2,
         nrows=n_operations,
     )
-    time_cost[np.isinf(time_cost)] = 99
+    time_cost[np.isinf(time_cost)] = 999
     op_cost[:, :] = pd.read_excel(
         path_to_file, 
         sheet_name=sheet_name, 
@@ -102,3 +103,63 @@ def _read_sheet(path_to_file, sheet_name):
         'productivity': productivity,
         'transportation_cost': transportation_cost,
     }
+
+
+def sample_problem(
+        n_tasks, 
+        n_operations, 
+        n_cities, 
+        threshold=0.5, 
+        max_iters=1000, 
+        dirpath='../data/',
+        random_seed=None):
+    assert 0 < n_tasks
+    assert 0 < n_operations < 21
+    assert 0 < n_cities < 21
+    if random_seed is not None:
+        random.seed(random_seed)
+    for i in range(max_iters):
+        operation = random.rand(n_operations, n_tasks) > threshold
+        operation = operation.astype(int)
+        if np.all(operation.sum(axis=0) > 0):
+            break
+    assert np.all(operation.sum(axis=0) > 0)
+    dist = np.load(f'{dirpath}dist.npy')[:n_cities, :n_cities]
+    time_cost = np.load(f'{dirpath}time_cost.npy')[:n_operations, :n_tasks]
+    op_cost = np.load(f'{dirpath}op_cost.npy')[:n_operations, :n_tasks]
+    productivity = np.load(f'{dirpath}productivity.npy')[:n_cities]
+    transportation_cost = np.array([0.3])
+    return {
+        'name': f'{n_tasks},{n_operations},{n_cities}',
+        'n_tasks': n_tasks, 
+        'n_operations': n_operations, 
+        'n_cities': n_cities,
+        'n_services': 1,
+        'operation': operation,
+        'dist': dist,
+        'time_cost': time_cost,
+        'op_cost': op_cost,
+        'productivity': productivity,
+        'transportation_cost': transportation_cost,
+    }
+
+
+def sample_dataset(
+        n_problems, 
+        n_tasks_range=[5,10], 
+        n_operations_range=[5,20], 
+        n_cities_range=[5,20], 
+        threshold=0.5, 
+        max_iters=1000, 
+        dirpath='../data/',
+        random_seed=None):
+    if random_seed is not None:
+        random.seed(random_seed)
+    problems = []
+    for i in range(n_problems):
+        n_tasks = random.randint(n_tasks_range[0], n_tasks_range[1]+1)
+        n_operations = random.randint(n_operations_range[0], n_operations_range[1]+1)
+        n_cities = random.randint(n_cities_range[0], n_cities_range[1]+1)
+        problem = sample_problem(n_tasks, n_operations, n_cities, threshold, max_iters, dirpath)
+        problems.append(problem)
+    return problems
