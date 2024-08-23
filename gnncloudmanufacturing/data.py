@@ -125,8 +125,8 @@ def sample_problem(
             break
     assert np.all(operation.sum(axis=0) > 0)
     dist = np.load(f'{dirpath}dist.npy')[:n_cities, :n_cities]
-    time_cost = np.load(f'{dirpath}time_cost.npy')[:n_operations, :n_tasks]
-    op_cost = np.load(f'{dirpath}op_cost.npy')[:n_operations, :n_tasks]
+    time_cost = np.load(f'{dirpath}time_cost.npy')[:n_operations, :n_cities]
+    op_cost = np.load(f'{dirpath}op_cost.npy')[:n_operations, :n_cities]
     productivity = np.load(f'{dirpath}productivity.npy')[:n_cities]
     transportation_cost = np.array([0.3])
     return {
@@ -161,5 +161,6 @@ def sample_dataset(
         n_operations = random.randint(n_operations_range[0], n_operations_range[1]+1)
         n_cities = random.randint(n_cities_range[0], n_cities_range[1]+1)
         problem = sample_problem(n_tasks, n_operations, n_cities, threshold, max_iters, dirpath)
+        problem['name'] = problem['name']+f'-{i+1}'
         problems.append(problem)
     return problems

@@ -34,7 +34,7 @@ def mip_solve(problem, max_seconds=120, gamma_start=None, delta_start=None):
     if gamma_start is not None:
         start = gamma_start.flatten().tolist() + delta_start.flatten().tolist()
         model.start = [(v, s) for v, s in zip(model.vars, start)]
-    model.validate_mip_start()
+        model.validate_mip_start()
     status = model.optimize(max_seconds=max_seconds)
 
     _delta = np.reshape(list(map(lambda x: x.x, delta.flatten().tolist())), delta_shape)

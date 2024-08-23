@@ -135,7 +135,7 @@ class DotProductDecoder(nn.Module):
 
 
 class GNN(LightningModule):
-    def __init__(self, ins_dim, ino_dim, out_dim, n_layers, lr, dropout_rate=0.2):
+    def __init__(self, ins_dim, ino_dim, out_dim, n_layers, lr, dropout_rate=0.):
         super().__init__()
         convs = [AttnConvLayer(ins_dim, ino_dim, out_dim)]
         for _ in range(n_layers-1):

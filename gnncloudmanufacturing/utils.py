@@ -9,7 +9,7 @@ os_type = ('o', 'os', 's')
 so_type = ('s', 'so', 'o')
 
 
-def graph_from_problem(problem, gamma=None):
+def graph_from_problem(problem, gamma=None, max_operations=None):
     n_tasks = problem['n_tasks']
     n_operations = problem['n_operations']
     operation = problem['operation']
@@ -17,6 +17,8 @@ def graph_from_problem(problem, gamma=None):
     time_cost = problem['time_cost']
     op_cost = problem['op_cost']
     productivity = problem['productivity']
+    if max_operations is None:
+        max_operations = n_operations
 
     operation_index = []
     for i in range(n_tasks):
@@ -50,8 +52,11 @@ def graph_from_problem(problem, gamma=None):
     g = dgl.heterograph(graph_data)
     g = dgl.add_self_loop(g, etype='ss')
 
+    op_feat = torch.zeros(len(operation_index), max_operations)
+    op_feat[range(len(operation_index)), operation_index[:, 1]] = 1
+
     g.ndata['feat'] = {
-        'o': torch.ones(len(operation_index), 1),
+        'o': torch.FloatTensor(op_feat),
         's': torch.FloatTensor(productivity[:, None])
     }
     g.ndata['operation_index'] = {

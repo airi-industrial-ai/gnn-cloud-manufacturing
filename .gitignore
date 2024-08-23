@@ -3,3 +3,5 @@
 **/.ipynb_checkpoints/*
 gnncloudmanufacturing.egg-info/*
 **/lightning_logs/*
+notebooks/train_data/optimal/*
+notebooks/monitor.ipynb
