@@ -110,6 +110,7 @@ def _prepare_plot(problem, task=None):
     dglgraph = graph_from_problem(problem)
     n_tasks = problem['n_tasks']
     n_cities = problem['n_cities']
+    n_operations = problem['n_operations']
     operation_index = dglgraph.ndata['operation_index']['o'].numpy()
     subtask_names = [f'{i}_{j}' for (i, j) in operation_index]
         
@@ -123,7 +124,7 @@ def _prepare_plot(problem, task=None):
     for i, name in enumerate(subtask_names):
         pos[name] = list(operation_index[i][::-1])
     for i in range(n_cities):
-        pos[str(i)] = city_pos[i]*0.003 + [5, n_tasks + 4]
+        pos[str(i)] = city_pos[i]*0.003 + [n_operations/2, n_tasks + 4]
     
     o2o = []
     c2o = []
