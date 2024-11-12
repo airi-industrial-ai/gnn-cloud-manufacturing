@@ -86,23 +86,23 @@ def dp_solve(problem):
     transportation_cost = problem["transportation_cost"]
 
     operations_matrix = pd.DataFrame(operations)
-    operations_matrix.index = [f'Sub-operation{i}' for i in range(operations.shape[0])]
-    operations_matrix.columns = [f'Operation{i}' for i in range(operations.shape[1])]
+    operations_matrix.index = [f'Sub-operation{i+1}' for i in range(operations.shape[0])]
+    operations_matrix.columns = [f'Operation{i+1}' for i in range(operations.shape[1])]
 
     distances_matrix = pd.DataFrame(dist)
-    distances_matrix.index = [f'city{i}' for i in range(dist.shape[0])]
-    distances_matrix.columns = [f'city{i}' for i in range(dist.shape[1])]
+    distances_matrix.index = [f'city{i+1}' for i in range(dist.shape[0])]
+    distances_matrix.columns = [f'city{i+1}' for i in range(dist.shape[1])]
 
     times_matrix = pd.DataFrame(time_cost)
-    times_matrix.index = [f'Sub-operation{i}' for i in range(time_cost.shape[0])]
-    times_matrix.columns = [f'city{i}' for i in range(time_cost.shape[1])]
+    times_matrix.index = [f'Sub-operation{i+1}' for i in range(time_cost.shape[0])]
+    times_matrix.columns = [f'city{i+1}' for i in range(time_cost.shape[1])]
     
     costs_matrix = pd.DataFrame(op_cost)
-    costs_matrix.index = [f'Sub-operation{i}' for i in range(op_cost.shape[0])]
-    costs_matrix.columns = [f'city{i}' for i in range(op_cost.shape[1])]
+    costs_matrix.index = [f'Sub-operation{i+1}' for i in range(op_cost.shape[0])]
+    costs_matrix.columns = [f'city{i+1}' for i in range(op_cost.shape[1])]
 
     productivity = pd.Series(productivity)
-    productivity.index = [f'city{i}' for i in range(productivity.shape[0])]
+    productivity.index = [f'city{i+1}' for i in range(productivity.shape[0])]
     
     distances_coef = transportation_cost[0]
     
