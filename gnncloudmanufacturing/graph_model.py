@@ -192,3 +192,182 @@ class GNN(LightningModule):
     def configure_optimizers(self):
         opt = Adam(self.parameters(), lr=self.lr)
         return opt
+
+
+class ConvLayer(nn.Module):
+    def __init__(self, ins_dim, ino_dim, out_dim):
+        super().__init__()
+        self.W_s = nn.Linear(ins_dim, out_dim)
+        self.W_o = nn.Linear(ino_dim, out_dim)
+        self.W_in = nn.Linear(ino_dim, out_dim)
+        self.W_self = nn.Linear(ino_dim, out_dim)
+        self.W_out = nn.Linear(ino_dim, out_dim)
+    
+    def forward(self, graph, s_feat, o_feat):
+        with graph.local_scope():
+            z = self._conv_z(graph, s_feat, o_feat)
+            x = self._conv_x(graph, o_feat)
+        return z, x
+
+    def _conv_z(self, graph, s_feat, o_feat):
+        graph.ndata['h_s'] = {'s': self.W_s(s_feat)}
+        graph.ndata['h_o'] = {'o': self.W_o(o_feat)}
+
+        graph.multi_update_all({
+            'os': (fn.copy_u('h_o', 'h_o'), fn.sum('h_o', 'h_o')),
+            'ss': (fn.copy_u('h_s', 'h_s'), fn.sum('h_s', 'h_s')),
+        }, 'sum')
+
+        z = graph.ndata['h_o']['s'] + graph.ndata['h_s']['s']
+        return z
+    
+    def _conv_x(self, graph, o_feat):
+        graph.ndata['h_in'] = {'o': self.W_in(o_feat)}
+        graph.ndata['h_self'] = {'o': self.W_self(o_feat)}
+        graph.ndata['h_out'] = {'o': self.W_out(o_feat)}
+
+        graph.multi_update_all({
+            'forward': (fn.copy_u('h_in', 'h_in'), fn.sum('h_in', 'h_in')),
+            'backward': (fn.copy_u('h_out', 'h_out'), fn.sum('h_out', 'h_out')),
+        }, 'sum')
+        x = graph.ndata['h_in']['o'] + graph.ndata['h_self']['o'] + graph.ndata['h_out']['o']
+        return x
+
+
+class SimpleGNN(LightningModule):
+    def __init__(self, ins_dim, ino_dim, out_dim, n_layers, lr, dropout_rate=0.):
+        super().__init__()
+        convs = [ConvLayer(ins_dim, ino_dim, out_dim)]
+        for _ in range(n_layers-1):
+            convs.append(ConvLayer(out_dim, out_dim, out_dim))
+        self.convs = nn.ModuleList(convs)
+        self.dropout = nn.Dropout(dropout_rate)
+        self.dec = DotProductDecoder()
+        self.lr = lr
+    
+    def forward(self, graph):
+        s_feat = graph.ndata['feat']['s']
+        o_feat = graph.ndata['feat']['o']
+        s_hid, o_hid = self.convs[0](graph, s_feat, o_feat)
+        for conv in self.convs[1:]:
+            s_hid, o_hid = self.dropout(s_hid), self.dropout(o_hid)
+            s_hid, o_hid = conv(graph, torch.relu(s_hid), torch.relu(o_hid))
+        logits = self.dec(graph, s_hid, o_hid)
+        return logits
+    
+    def predict(self, graph):
+        logits = self.forward(graph)
+        s, o = sample_so(graph, logits)
+        edge_ids = graph.edge_ids(o, s, etype=os_type)
+        pred = torch.zeros(graph.number_of_edges(etype=os_type), 1)
+        pred[edge_ids] = 1
+        return pred
+    
+    def training_step(self, batch, batch_idx):
+        graph, _ = batch
+        target = graph.edata['target'][os_type]
+        logits = self.forward(graph)
+        loss = F.binary_cross_entropy_with_logits(logits, target)
+        self.log("train_loss", loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        graph, _ = batch
+        target = graph.edata['target'][os_type]
+        logits = self.forward(graph)
+        loss = F.binary_cross_entropy_with_logits(logits, target)
+        self.log("val_loss", loss)
+
+        pred = self.predict(graph)
+        total_cost = 0
+        i = 0
+        for subgraph in dgl.unbatch(graph):
+            num_edges = subgraph.num_edges(os_type)
+            total_cost += total_cost_from_graph(subgraph, pred[i:i+num_edges])
+            i = num_edges
+
+        self.log("val_total_cost", total_cost/graph.batch_size)
+        return loss, total_cost
+    
+    def configure_optimizers(self):
+        opt = Adam(self.parameters(), lr=self.lr)
+        return opt
+
+
+class LinearLayer(nn.Module):
+    def __init__(self, ins_dim, ino_dim, out_dim):
+        super().__init__()
+        self.W_s = nn.Linear(ins_dim, out_dim)
+        self.W_self = nn.Linear(ino_dim, out_dim)
+    
+    def forward(self, graph, s_feat, o_feat):
+        with graph.local_scope():
+            z = self._conv_z(graph, s_feat, o_feat)
+            x = self._conv_x(graph, o_feat)
+        return z, x
+
+    def _conv_z(self, graph, s_feat, o_feat):
+        return self.W_s(s_feat)
+    
+    def _conv_x(self, graph, o_feat):
+        return self.W_self(o_feat)
+    
+
+class MLP(LightningModule):
+    def __init__(self, ins_dim, ino_dim, out_dim, n_layers, lr, dropout_rate=0.):
+        super().__init__()
+        convs = [LinearLayer(ins_dim, ino_dim, out_dim)]
+        for _ in range(n_layers-1):
+            convs.append(LinearLayer(out_dim, out_dim, out_dim))
+        self.convs = nn.ModuleList(convs)
+        self.dropout = nn.Dropout(dropout_rate)
+        self.dec = DotProductDecoder()
+        self.lr = lr
+    
+    def forward(self, graph):
+        s_feat = graph.ndata['feat']['s']
+        o_feat = graph.ndata['feat']['o']
+        s_hid, o_hid = self.convs[0](graph, s_feat, o_feat)
+        for conv in self.convs[1:]:
+            s_hid, o_hid = self.dropout(s_hid), self.dropout(o_hid)
+            s_hid, o_hid = conv(graph, torch.relu(s_hid), torch.relu(o_hid))
+        logits = self.dec(graph, s_hid, o_hid)
+        return logits
+    
+    def predict(self, graph):
+        logits = self.forward(graph)
+        s, o = sample_so(graph, logits)
+        edge_ids = graph.edge_ids(o, s, etype=os_type)
+        pred = torch.zeros(graph.number_of_edges(etype=os_type), 1)
+        pred[edge_ids] = 1
+        return pred
+    
+    def training_step(self, batch, batch_idx):
+        graph, _ = batch
+        target = graph.edata['target'][os_type]
+        logits = self.forward(graph)
+        loss = F.binary_cross_entropy_with_logits(logits, target)
+        self.log("train_loss", loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        graph, _ = batch
+        target = graph.edata['target'][os_type]
+        logits = self.forward(graph)
+        loss = F.binary_cross_entropy_with_logits(logits, target)
+        self.log("val_loss", loss)
+
+        pred = self.predict(graph)
+        total_cost = 0
+        i = 0
+        for subgraph in dgl.unbatch(graph):
+            num_edges = subgraph.num_edges(os_type)
+            total_cost += total_cost_from_graph(subgraph, pred[i:i+num_edges])
+            i = num_edges
+
+        self.log("val_total_cost", total_cost/graph.batch_size)
+        return loss, total_cost
+    
+    def configure_optimizers(self):
+        opt = Adam(self.parameters(), lr=self.lr)
+        return opt
