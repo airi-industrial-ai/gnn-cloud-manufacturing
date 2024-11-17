@@ -13,7 +13,7 @@ def graph_from_problem(problem, gamma=None, max_operations=None):
     n_tasks = problem['n_tasks']
     n_operations = problem['n_operations']
     operation = problem['operation']
-    dist = problem['dist']
+    dist = problem['dist'] * problem['transportation_cost'][0]
     time_cost = problem['time_cost']
     op_cost = problem['op_cost']
     productivity = problem['productivity']
